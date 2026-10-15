@@ -72,6 +72,9 @@ class MockNetDimm:
         self._server: asyncio.base_events.Server | None = None
         self.upload_started = asyncio.Event()
         self.packet_received = asyncio.Event()
+        # Une vraie NetDIMM traite une connexion à la fois : les suivantes attendent leur tour
+        # (sinon un info() pourrait doubler la fin d'un envoi encore en tampon).
+        self._conn_lock = asyncio.Lock()
 
     # -- cycle de vie --------------------------------------------------------
 
@@ -119,6 +122,10 @@ class MockNetDimm:
         if self.faults.refuse:
             writer.close()
             return
+        async with self._conn_lock:
+            await self._serve(reader, writer)
+
+    async def _serve(self, reader: asyncio.StreamReader, writer: asyncio.StreamWriter) -> None:
         try:
             while True:
                 try:
