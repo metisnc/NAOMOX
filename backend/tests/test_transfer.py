@@ -40,7 +40,7 @@ async def test_gz_rom_is_decompressed_and_sent(mock_dimm: MockNetDimm, rom_facto
     )
     assert code == 0, events
     phases = [e["phase"] for e in events if e["event"] == "phase"]
-    assert phases == ["decompress", "connecting", "uploading", "rebooting"]
+    assert phases == ["decompress", "connecting", "uploading", "verifying", "rebooting"]
     assert events[-1]["event"] == "done" and events[-1]["size"] == len(raw)
     assert bytes(mock_dimm.state.data) == raw
     assert mock_dimm.state.restarts == 1
@@ -82,5 +82,5 @@ async def test_disconnect_mid_upload(mock_dimm: MockNetDimm, rom_factory):
         "--ip", "127.0.0.1", "--port", str(mock_dimm.port), "--file", str(rom), "--socket-timeout", "3"
     )
     assert code == 2
-    assert events[-1]["kind"] in {"disconnected", "timeout", "protocol"}
+    assert events[-1]["kind"] in {"disconnected", "timeout", "protocol", "verify"}
     assert events[-1]["started"] is True

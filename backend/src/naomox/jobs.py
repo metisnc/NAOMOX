@@ -1,6 +1,6 @@
 """Jobs de transfert : une file FIFO et un worker par borne, un sous-processus par envoi.
 
-États d'un job : queued → decompress → connecting → uploading → rebooting → done
+États d'un job : queued → decompress → connecting → uploading → verifying → rebooting → done
                  (retrying entre deux tentatives) ; états finaux : done, error, cancelled.
 """
 
@@ -271,6 +271,8 @@ class JobManager:
         ]  # fmt: skip
         if job.disable_crc:
             args.append("--disable-crc")
+        if not cfg.netdimm.verify_upload:
+            args.append("--no-verify")
         if cfg.netdimm.socket_timeout:
             args += ["--socket-timeout", str(cfg.netdimm.socket_timeout)]
 

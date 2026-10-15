@@ -3,7 +3,7 @@
 Remplace `netdimm_send <ip> <rom> [--disable-crc]` de WiPi. Émet des événements
 JSON (un par ligne) sur stdout :
 
-    {"event": "phase", "phase": "decompress" | "connecting" | "uploading" | "rebooting"}
+    {"event": "phase", "phase": "decompress" | "connecting" | "uploading" | "verifying" | "rebooting"}
     {"event": "progress", "phase": "...", "done": n, "total": n}
     {"event": "done", "crc": "0x...", "size": n}
     {"event": "error", "kind": "...", "message": "..."}
@@ -107,6 +107,7 @@ def run(
     target: str = "naomi",
     disable_crc: bool = False,
     reboot: bool = True,
+    verify: bool = True,
     socket_timeout: int | None = None,
     tmpdir: str | None = None,
     emitter: Emitter | None = None,
@@ -146,6 +147,27 @@ def run(
 
         try:
             netdimm.send(data, None, disable_crc_check=disable_crc, progress_callback=on_progress)
+            if verify:
+                # La NetDIMM n'acquitte pas les blocs : une coupure en cours d'envoi peut passer
+                # inaperçue. On relit la taille et le CRC enregistrés (requête « information »,
+                # comme le mode serveur de DragonMinded) avant de redémarrer sur le jeu.
+                emitter.emit("phase", phase="verifying")
+                info = netdimm.info()
+                if info.current_game_size != total or info.current_game_crc != crc:
+                    # Laisser à la carte le temps de finir d'enregistrer, puis relire une fois.
+                    time.sleep(1.0)
+                    info = netdimm.info()
+                if info.current_game_size != total or info.current_game_crc != crc:
+                    emitter.emit(
+                        "error",
+                        kind="verify",
+                        message=(
+                            f"la NetDIMM indique {info.current_game_size} octets / CRC "
+                            f"0x{info.current_game_crc:08x}, attendu {total} / 0x{crc:08x}"
+                        ),
+                        started=True,
+                    )
+                    return 2
             if reboot:
                 emitter.emit("phase", phase="rebooting")
                 netdimm.reboot()
@@ -172,6 +194,7 @@ def main(argv: list[str] | None = None) -> int:
     p.add_argument("--target", default="naomi", choices=["naomi", "chihiro", "triforce"])
     p.add_argument("--disable-crc", action="store_true")
     p.add_argument("--no-reboot", action="store_true")
+    p.add_argument("--no-verify", action="store_true", help="ne pas relire taille/CRC après envoi")
     p.add_argument("--socket-timeout", type=int, default=None)
     p.add_argument("--tmpdir", default=None)
     a = p.parse_args(argv)
@@ -183,6 +206,7 @@ def main(argv: list[str] | None = None) -> int:
             target=a.target,
             disable_crc=a.disable_crc,
             reboot=not a.no_reboot,
+            verify=not a.no_verify,
             socket_timeout=a.socket_timeout,
             tmpdir=a.tmpdir,
         )

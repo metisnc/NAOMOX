@@ -8,8 +8,8 @@
   let showLog = $state(false);
   let log = $state<string[]>([]);
 
-  const indeterminate = $derived(['queued', 'connecting', 'retrying', 'rebooting'].includes(job.state) && !job.total);
-  const pct = $derived(job.state === 'rebooting' || job.state === 'done' ? 100 : job.percent);
+  const indeterminate = $derived(['queued', 'connecting', 'retrying', 'verifying', 'rebooting'].includes(job.state) && !job.total);
+  const pct = $derived(['verifying', 'rebooting', 'done'].includes(job.state) ? 100 : job.percent);
 
   async function toggleLog() {
     showLog = !showLog;

@@ -75,6 +75,8 @@ class NetdimmConfig(BaseModel):
     # Nouvelles tentatives automatiques si la borne est injoignable à la connexion.
     retries: int = 2
     retry_delay: float = 3.0
+    # Relit taille et CRC sur la NetDIMM après l'envoi (détecte une coupure silencieuse).
+    verify_upload: bool = True
     # Sonde de présence (connexion TCP au port NetDIMM).
     probe_interval: float = 5.0
     probe_timeout: float = 1.5

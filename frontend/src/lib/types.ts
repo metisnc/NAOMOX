@@ -21,6 +21,7 @@ export type JobState =
   | 'decompress'
   | 'connecting'
   | 'uploading'
+  | 'verifying'
   | 'rebooting'
   | 'retrying'
   | 'done'

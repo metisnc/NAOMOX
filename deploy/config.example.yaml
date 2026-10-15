@@ -32,6 +32,8 @@ netdimm:
   # Nouvelles tentatives si la borne est injoignable avant tout envoi.
   retries: 2
   retry_delay: 3
+  # Relire taille et CRC sur la NetDIMM après l'envoi, avant de redémarrer (recommandé).
+  verify_upload: true
   # Sonde de présence des bornes.
   probe_interval: 5
   probe_timeout: 1.5
