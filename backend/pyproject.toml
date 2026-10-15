@@ -33,7 +33,7 @@ naomox = "naomox.cli:main"
 where = ["src"]
 
 [tool.setuptools.package-data]
-naomox = ["py.typed"]
+naomox = ["py.typed", "data/*.csv"]
 netdimm = ["py.typed", "LICENSE", "README.md"]
 
 [tool.pytest.ini_options]
@@ -55,3 +55,10 @@ ignore = ["E501"]
 
 [tool.ruff.lint.isort]
 known-first-party = ["naomox", "netdimm"]
+
+[tool.ruff.lint.per-file-ignores]
+# Les tests attendent des conditions par sondage court : acceptable ici.
+"tests/**" = ["ASYNC110"]
+
+[tool.ruff.lint.flake8-bugbear]
+extend-immutable-calls = ["fastapi.File", "fastapi.Query", "fastapi.Depends"]
