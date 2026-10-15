@@ -1,0 +1,46 @@
+# /etc/naomox/config.yaml — configuration de NAOMOX.
+# Les bornes et les réglages modifiables depuis l'interface sont stockés dans
+# <paths.data>/state/ ; ce fichier ne contient que la configuration « statique ».
+
+paths:
+  # ROMs (roms/), médias (media/images, media/videos), firmwares (firmware/),
+  # homebrew (homebrew/), état (state/), fichiers temporaires (tmp/).
+  data: /srv/naomox
+  # Frontend compilé (installé par deploy/install.sh).
+  frontend: /opt/naomox/frontend
+
+http:
+  host: 0.0.0.0
+  port: 80
+
+auth:
+  # Mot de passe unique optionnel. Hash : `/opt/naomox/venv/bin/naomox hash-password`
+  enabled: false
+  password_hash: ""
+  session_hours: 720
+
+network:
+  # Sous-réseau balayé par « Rechercher » (port NetDIMM). Modifiable dans Réglages.
+  cabinet_subnet: 10.185.10.0/24
+
+netdimm:
+  port: 10703
+  # Timeout socket (s) ; vide = défaut par cible (15 s Naomi, 40 s Chihiro/Triforce).
+  socket_timeout:
+  # Durée maximale d'un lancement complet (décompression + envoi + reboot).
+  send_timeout: 900
+  # Nouvelles tentatives si la borne est injoignable avant tout envoi.
+  retries: 2
+  retry_delay: 3
+  # Sonde de présence des bornes.
+  probe_interval: 5
+  probe_timeout: 1.5
+
+timehack:
+  # Paquet « time limit » (0x17) renvoyé périodiquement aux bornes avec time hack.
+  interval_seconds: 30
+  minutes: 10
+
+# Surcharge éventuelle de la compatibilité type de borne → systèmes de jeux.
+# compatibility:
+#   Sega Naomi2: [Sega Naomi, Sega Naomi2, Sammy Atomiswave]
