@@ -13,5 +13,5 @@ fi
 
 tar --owner=0 --group=0 \
     --exclude='.venv' --exclude='__pycache__' --exclude='.pytest_cache' --exclude='.ruff_cache' --exclude='*.egg-info' \
-    -cf - backend/pyproject.toml backend/README.md backend/src frontend/dist deploy sbin/piforce/dm_netboot/homebrew |
+    -cf - backend/pyproject.toml backend/README.md backend/src frontend/dist deploy homebrew |
   ssh -i "$KEY" "$HOST" 'rm -rf /root/naomox-src && mkdir -p /root/naomox-src && tar --no-same-owner -xf - -C /root/naomox-src && bash /root/naomox-src/deploy/install.sh'

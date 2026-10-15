@@ -86,9 +86,9 @@ else
 fi
 
 log "Homebrew (domaine public)"
-HB="$REPO/sbin/piforce/dm_netboot/homebrew"
+HB="$REPO/homebrew"
 if [ -d "$HB" ]; then
-  for f in naomidiag/naomidiag.bin.gz netbootmenu/netbootmenu.bin netbootmenu/netbootmenu.bin.dark netbootmenu/netbootmenu.bin.light; do
+  for f in naomidiag.bin.gz netbootmenu.bin netbootmenu.bin.dark netbootmenu.bin.light; do
     if [ -f "$HB/$f" ] && [ ! -f "$DATA_DIR/homebrew/$(basename "$f")" ]; then
       install -m 0640 -o "$USER_NAME" -g "$USER_NAME" "$HB/$f" "$DATA_DIR/homebrew/"
     fi

@@ -11,7 +11,7 @@ roms/
 FW_Netdimm_*
 
 # Exception : homebrew du domaine public (DragonMinded) nécessaire au menu OSM
-!sbin/piforce/dm_netboot/homebrew/**
+!homebrew/**
 
 # --- Données locales / runtime -------------------------------------------
 /data/
