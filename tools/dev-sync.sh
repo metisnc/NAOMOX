@@ -12,7 +12,6 @@ cd "$(dirname "$0")/.."
 paths=(backend)
 [ -d deploy ] && paths+=(deploy)
 [ -d frontend/dist ] && paths+=(frontend/dist)
-[ -f var/www/html/csv/romsinfo.csv ] && paths+=(var/www/html/csv/romsinfo.csv)
 
 tar --owner=0 --group=0 --exclude='.venv' --exclude='__pycache__' --exclude='.pytest_cache' --exclude='.ruff_cache' \
     --exclude='*.egg-info' -cf - "${paths[@]}" |
