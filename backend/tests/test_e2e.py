@@ -40,7 +40,9 @@ async def test_launch_from_api_until_done_over_sse(tmp_path: Path, mock_dimm: Mo
     cfg.ensure_dirs()
     raw = make_rom(cfg.paths.roms / ROM, 1_500_000)
 
-    server = uvicorn.Server(uvicorn.Config(create_app(cfg), host="127.0.0.1", port=cfg.http.port, log_level="warning"))
+    server = uvicorn.Server(
+        uvicorn.Config(create_app(cfg), host="127.0.0.1", port=cfg.http.port, log_level="warning")
+    )
     task = asyncio.create_task(server.serve())
     base = f"http://127.0.0.1:{cfg.http.port}"
     try:
@@ -49,7 +51,11 @@ async def test_launch_from_api_until_done_over_sse(tmp_path: Path, mock_dimm: Mo
                 while not server.started:
                     await asyncio.sleep(0.05)
 
-            cab = (await c.post("/api/v1/cabinets", json={"name": "Borne virtuelle", "ip": "127.0.0.1"}, headers=H)).json()
+            cab = (
+                await c.post(
+                    "/api/v1/cabinets", json={"name": "Borne virtuelle", "ip": "127.0.0.1"}, headers=H
+                )
+            ).json()
             async with asyncio.timeout(5):
                 while not (await c.get(f"/api/v1/cabinets/{cab['id']}")).json()["status"]["online"]:
                     await asyncio.sleep(0.1)

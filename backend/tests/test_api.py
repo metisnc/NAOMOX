@@ -94,6 +94,8 @@ async def test_launch_flow_auto_cabinet(api: httpx.AsyncClient, mock_dimm: MockN
     assert job["state"] == "done" and job["cabinet_id"] == cab["id"]
     assert bytes(mock_dimm.state.data) == raw
     assert (await api.get("/api/v1/history")).json()[0]["rom"] == GAME
+    played = next(g for g in (await api.get("/api/v1/games")).json() if g["rom"] == GAME)
+    assert played["plays"] == 1 and played["last_played"] and played["size"] > 0
     status = (await api.get(f"/api/v1/cabinets/{cab['id']}")).json()["status"]
     assert status["game"] == GAME
 

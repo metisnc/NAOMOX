@@ -124,7 +124,9 @@ def _cab_or_404(app: Naomox, cab_id: str) -> Cabinet:
     return cab
 
 
-def _game_view(app: Naomox, row: dict[str, str]) -> dict[str, Any]:
+def _game_view(
+    app: Naomox, row: dict[str, str], stats: dict[str, tuple[int, float]] | None = None
+) -> dict[str, Any]:
     rom = row["romname"]
     media = app.config.paths.media
 
@@ -137,9 +139,11 @@ def _game_view(app: Naomox, row: dict[str, str]) -> dict[str, Any]:
             return None
 
     try:
-        present = resolve_in(app.config.paths.roms, rom).exists()
-    except ValueError:
-        present = False
+        path = resolve_in(app.config.paths.roms, rom)
+        size = path.stat().st_size if path.exists() else None
+    except (ValueError, OSError):
+        size = None
+    plays, last = (stats or {}).get(rom, (0, None))
     return {
         "rom": rom,
         "name": row.get("description") or rom,
@@ -155,7 +159,10 @@ def _game_view(app: Naomox, row: dict[str, str]) -> dict[str, Any]:
         "game_id": row.get("game_id"),
         "image": media_url("images", row.get("image", "")),
         "video": media_url("videos", row.get("video", "")),
-        "present": present,
+        "present": size is not None,
+        "size": size,
+        "plays": plays,
+        "last_played": last,
     }
 
 
@@ -271,7 +278,8 @@ def create_app(config: Config) -> FastAPI:
 
     @r.get("/games")
     async def list_games() -> list[dict[str, Any]]:
-        games = [_game_view(app_state, row) for row in app_state.games.all()]
+        stats = app_state.history.play_stats()
+        games = [_game_view(app_state, row, stats) for row in app_state.games.all()]
         games.sort(key=lambda g: g["name"].lower())
         return games
 
@@ -281,7 +289,7 @@ def create_app(config: Config) -> FastAPI:
             row = app_state.games.update(rom, changes)
         except KeyError:
             raise _err(404, "jeu inconnu") from None
-        return _game_view(app_state, row)
+        return _game_view(app_state, row, app_state.history.play_stats())
 
     @r.post("/games/scan")
     async def scan_games() -> dict[str, Any]:

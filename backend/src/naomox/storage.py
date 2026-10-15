@@ -374,6 +374,24 @@ class HistoryStore:
                 continue
         return out
 
+    def play_stats(self) -> dict[str, tuple[int, float]]:
+        """Nombre de lancements réussis et date du dernier, par ROM."""
+        stats: dict[str, tuple[int, float]] = {}
+        with self._lock:
+            if not self.path.exists():
+                return stats
+            lines = self.path.read_text(encoding="utf-8").splitlines()
+        for line in lines:
+            try:
+                e = json.loads(line)
+            except ValueError:
+                continue
+            if e.get("kind") != "launch" or e.get("state") != "done" or not e.get("rom"):
+                continue
+            count, last = stats.get(e["rom"], (0, 0.0))
+            stats[e["rom"]] = (count + 1, max(last, float(e.get("ts", 0))))
+        return stats
+
 
 class SettingsStore:
     """Réglages modifiables depuis l'interface (surcouche de config.yaml)."""
