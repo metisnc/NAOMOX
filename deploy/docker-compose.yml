@@ -1,0 +1,12 @@
+# Optionnel : NAOMOX en conteneur Docker (le déploiement de référence est le LXC + install.sh).
+# Réseau « host » : les NetDIMM doivent être joignables directement (TCP 10703).
+services:
+  naomox:
+    build:
+      context: ..
+      dockerfile: deploy/Dockerfile
+    network_mode: host
+    restart: unless-stopped
+    volumes:
+      - ${NAOMOX_DATA:-./data}:/srv/naomox
+      # - ./config.yaml:/etc/naomox/config.yaml:ro
