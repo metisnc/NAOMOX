@@ -118,8 +118,11 @@ class NetDimm:
         target: Optional[NetDimmTargetEnum] = None,
         log: Optional[Callable[..., Any]] = None,
         timeout: Optional[int] = None,
+        port: int = 10703,
     ) -> None:
         self.ip: str = ip
+        # NAOMOX: the port is configurable so tests can target a mock NetDimm.
+        self.port: int = port
         self.sock: Optional[socket.socket] = None
         self.log: Optional[Callable[..., Any]] = log
         self.version: NetDimmVersionEnum = version or NetDimmVersionEnum.VERSION_UNKNOWN
@@ -337,11 +340,11 @@ class NetDimm:
             if (sys.platform == 'darwin' or os.environ.get('ALTERNATE_TIMEOUT_HANDLING')) and (not os.environ.get('DEFAULT_TIMEOUT_HANDLING')):
                 self.sock.settimeout(15)
                 self.sock.setblocking(True)
-                self.sock.connect((self.ip, 10703))
+                self.sock.connect((self.ip, self.port))
             else:
                 self.sock.settimeout(15)
                 self.sock.setblocking(True)
-                self.sock.connect((self.ip, 10703))
+                self.sock.connect((self.ip, self.port))
 
         except Exception as e:
             raise NetDimmException("Could not connect to NetDimm") from e
@@ -678,8 +681,6 @@ class NetDimm:
         # upload a file into DIMM memory, and optionally encrypt for the given key.
         # note that the re-encryption is obsoleted by just setting a zero-key, which
         # is a magic to disable the decryption.
-        progressfilename = "/var/log/progress_"+self.ip
-        progressfile = open(progressfilename, "w")
         crc: int = 0
         addr: int = 0
         total: int = len(data)
@@ -697,14 +698,9 @@ class NetDimm:
         self.__upload(1, 0xffff0000, b"\0" * 32, False)
 
         sequence = 2
-        last = -1
         while addr < total:
             percentage = int(float(addr * 100) / float(total))
             self.__print("%08x %d%%\r" % (addr, percentage), newline=False)
-            if last < percentage:
-                last += 1
-                progressfile.write(str(percentage) + '\n')
-                progressfile.flush()
             if progress_callback:
                 progress_callback(addr, total)
 
@@ -723,12 +719,6 @@ class NetDimm:
         crc = (~crc) & 0xFFFFFFFF
         self.__print("length: %08x" % addr)
         self.__set_information(crc, addr)
-        progressfile.write("100" + '\n')
-        progressfile.flush()
-        time.sleep(0.2)
-        progressfile.write("COMPLETE")
-        progressfile.flush()
-        progressfile.close()
 
     def __close(self) -> None:
         # Request the net dimm to close the connection and stop listening for additional connections.
