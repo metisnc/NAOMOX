@@ -36,7 +36,7 @@
   async function scan() {
     const r = await app.run(() => api.post<{ present: number; added: string[]; missing: number }>('/games/scan'));
     if (r) {
-      app.toast('ok', `${r.present} ROM présentes, ${r.added.length} nouvelle(s), ${r.missing} référencée(s) sans fichier`, 7000);
+      app.toast('ok', `${r.present} ROM(s) présente(s), ${r.added.length} nouvelle(s), ${r.missing} référencée(s) sans fichier`, 7000);
       await app.refreshGames();
     }
   }

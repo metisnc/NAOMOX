@@ -117,7 +117,7 @@
   }
   .game.missing, .game.disabled { opacity: 0.45; }
   .art { position: relative; aspect-ratio: 4 / 3; background: var(--bg-3); display: grid; place-items: center; }
-  .art img { width: 100%; height: 100%; object-fit: cover; }
+  .art img { width: 100%; height: 100%; object-fit: contain; padding: 6px; }
   .art span { font-size: 1.8rem; font-weight: 800; color: var(--fg-2); }
   .fav { position: absolute; top: 6px; right: 8px; color: var(--accent); font-style: normal; text-shadow: 0 1px 3px #000; }
   .meta { display: grid; gap: 0.3rem; padding: 0.55rem 0.65rem 0.7rem; }
