@@ -42,3 +42,8 @@ frontend/dist/
 Thumbs.db
 .idea/
 .vscode/
+
+# Résultats Playwright
+frontend/e2e/.results/
+frontend/test-results/
+frontend/playwright-report/
