@@ -71,6 +71,7 @@ class MockNetDimm:
         self.faults = MockFaults()
         self._server: asyncio.base_events.Server | None = None
         self.upload_started = asyncio.Event()
+        self.packet_received = asyncio.Event()
 
     # -- cycle de vie --------------------------------------------------------
 
@@ -128,6 +129,7 @@ class MockNetDimm:
                 pktid, flags, length = (word >> 24) & 0xFF, (word >> 16) & 0xFF, word & 0xFFFF
                 data = await reader.readexactly(length) if length else b""
                 self.state.packets.append((pktid, flags, length))
+                self.packet_received.set()
                 if self.faults.mute:
                     continue
                 keep_open = await self._dispatch(pktid, flags, data, writer)
