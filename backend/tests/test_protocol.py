@@ -79,6 +79,13 @@ async def test_send_with_crc_check_is_valid_after_reboot(mock_dimm: MockNetDimm)
     assert info.current_game_crc == NetDimm.crc(payload)
 
 
+@pytest.mark.parametrize("fw", ["3.03", "4.01", "4.02", "4.03"])
+async def test_info_reports_known_firmware_versions(mock_dimm: MockNetDimm, fw: str):
+    mock_dimm.state.firmware = fw
+    info = await asyncio.to_thread(client(mock_dimm).info)
+    assert info.firmware_version.value == fw
+
+
 async def test_time_hack_packet(mock_dimm: MockNetDimm):
     await asyncio.to_thread(client(mock_dimm).set_time_hack, 10)
     await settle(lambda: mock_dimm.state.time_limits)

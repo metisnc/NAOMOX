@@ -33,6 +33,8 @@ class NetDimmVersionEnum(Enum):
     VERSION_3_17 = "3.17"
     VERSION_4_01 = "4.01"
     VERSION_4_02 = "4.02"
+    # NAOMOX: 4.03 is distributed with WiPi and is otherwise reported as UNKNOWN.
+    VERSION_4_03 = "4.03"
 
 
 class NetDimmTargetEnum(Enum):
