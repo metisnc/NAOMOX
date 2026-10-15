@@ -14,6 +14,9 @@ export interface Game {
   image: string | null;
   video: string | null;
   present: boolean;
+  size: number | null;
+  plays: number;
+  last_played: number | null;
 }
 
 export type JobState =
