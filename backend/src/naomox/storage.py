@@ -9,7 +9,6 @@ import io
 import ipaddress
 import json
 import os
-import re
 import tempfile
 import threading
 import time
@@ -62,12 +61,18 @@ GAME_EDITABLE: frozenset[str] = frozenset(
     }
 )
 
-_SAFE_NAME = re.compile(r"^[A-Za-z0-9][A-Za-z0-9 _.,+'()\[\]&!-]{0,200}$")
-
 
 def safe_filename(name: str) -> str:
-    """Valide un nom de fichier simple (pas de chemin, pas de traversée)."""
-    if not name or name != os.path.basename(name) or name in {".", ".."} or not _SAFE_NAME.match(name):
+    """Valide un nom de fichier simple : pas de chemin, pas de traversée, pas de fichier caché,
+    pas de caractère de contrôle."""
+    if (
+        not name
+        or len(name) > 255
+        or name.startswith(".")
+        or "/" in name
+        or "\\" in name
+        or not name.isprintable()
+    ):
         raise ValueError(f"nom de fichier invalide : {name!r}")
     return name
 
