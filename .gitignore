@@ -1,0 +1,44 @@
+# --- ROMs, firmwares et médias : jamais dans git -------------------------
+# Les ROMs, firmwares NetDIMM (Sega) et médias (images/vidéos de jeux)
+# vivent dans le conteneur, sous le répertoire de données (/srv/wipi par défaut).
+roms/
+*.bin.gz
+*.gdi
+*.chd
+*.lst
+*.mp4
+*.webm
+FW_Netdimm_*
+
+# Exception : homebrew du domaine public (DragonMinded) nécessaire au menu OSM
+!sbin/piforce/dm_netboot/homebrew/**
+
+# --- Données locales / runtime -------------------------------------------
+/data/
+/config.yaml
+.env
+*.log
+
+# --- Python --------------------------------------------------------------
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+.coverage
+htmlcov/
+*.egg-info/
+dist/
+build/
+
+# --- Frontend ------------------------------------------------------------
+node_modules/
+frontend/dist/
+
+# --- Divers --------------------------------------------------------------
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
