@@ -1,25 +1,26 @@
-# Architecture cible — WiPiNetbooter-NG sur Proxmox
+# Architecture cible — NAOMOX (ex-WiPiNetbooter-NG) sur Proxmox
 
-Ce document se lit avec [AUDIT.md](AUDIT.md). Les décisions marquées **[à valider]** attendent ton accord.
+Ce document se lit avec [AUDIT.md](AUDIT.md). Toutes les décisions ci-dessous sont validées
+(voir §10).
 
 ## 1. Vue d'ensemble
 
 ```
- Téléphone / tablette (LAN)                       Réseau des bornes (isolé)
-          │ HTTP(S) :80                                     │ TCP 10703
-          ▼                                                 ▼
-┌──────────────────────── LXC Debian 12 « wipi » ─────────────────────────┐
-│ eth0 (vmbr0, LAN, DHCP ou IP fixe)      eth1 (vmbr1, 10.0.0.1/24, sans GW)│
+ Téléphone / tablette            LAN 10.185.10.0/24            NetDIMM (IP fixes)
+          │ HTTP :80                    │                        │ TCP 10703
+          ▼                             ▼                        ▼
+┌──────────────────── LXC 10230 « naomox » (Debian 13) ───────────────────┐
+│ eth0 (vmbr0, LAN, 10.185.10.230/24) — interface web ET bornes            │
 │                                                                          │
-│  wipinetbooter-api (systemd, utilisateur « wipi », aucun sudo)           │
+│  naomox (systemd, utilisateur « naomox », aucun sudo)           │
 │   ├─ FastAPI : REST /api/v1/* + SSE /api/v1/events + frontend statique   │
 │   ├─ Gestionnaire de bornes : un worker asyncio par NetDIMM              │
 │   │    file de jobs (send, firmware, diag, info), verrou TCP par DIMM    │
 │   │    superviseurs : time hack, mode serveur (ensure), menu OSM,        │
 │   │    autoboot                                                          │
-│   ├─ Sous-processus de transfert (python -m wipi.transfer) :             │
+│   ├─ Sous-processus de transfert (python -m naomox.transfer) :             │
 │   │    lib netdimm (dm_netboot), progression en JSON lines sur stdout    │
-│   └─ Stockage : /etc/wipi/config.yaml + /srv/wipi/{roms,media,firmware,  │
+│   └─ Stockage : /etc/naomox/config.yaml + /srv/naomox/{roms,media,firmware,  │
 │                 homebrew,state}                                          │
 └──────────────────────────────────────────────────────────────────────────┘
 ```
@@ -30,40 +31,48 @@ Ce document se lit avec [AUDIT.md](AUDIT.md). Les décisions marquées **[à val
 |---|---|---|
 | Matériel nécessaire | aucun : tout passe par le réseau (TCP 10703) | aucun |
 | Empreinte | environ 100 Mo de RAM, démarrage en 2 s | 512 Mo et plus, noyau séparé |
-| Réseau | 2 interfaces virtuelles sur deux bridges, sans difficulté | idem |
+| Réseau | 1 interface virtuelle sur `vmbr0` | idem |
 | Isolation | bonne (namespaces utilisateur) | meilleure |
 | Sauvegarde | `vzdump` / snapshots | idem |
 
-**Décision : LXC Debian 12 non privilégié.** Les fonctions USB et série sont abandonnées,
-donc aucun passthrough n'est requis et le mode privilégié devient inutile. `deploy/install.sh`
-fonctionne aussi dans une VM Debian 12 si tu préfères (option documentée dans DEPLOY.md).
+**Décision : LXC non privilégié, CT 10230 `naomox`.** Les fonctions USB et série sont
+abandonnées, donc aucun passthrough n'est requis et le mode privilégié devient inutile.
+
+**Debian 13 (trixie, Python 3.13)** plutôt que 12. C'est le seul template déjà présent sur
+l'hôte, ce qui évite d'y télécharger quoi que ce soit (règle : on ne touche à rien d'autre que
+le CT 10230). `deploy/install.sh` supporte Debian 12 et 13, en LXC comme en VM.
 
 Dimensionnement : 1 vCPU, 512 Mo de RAM, rootfs de 8 Go, plus un **point de montage `mp0`
-de 64 Go** pour `/srv/wipi`. Il contient les ROMs (24 Go aujourd'hui) et les médias (1,6 Go).
+de 64 Go** pour `/srv/naomox`. Il contient les ROMs (24 Go aujourd'hui) et les médias (1,6 Go).
 Le volume est séparé pour qu'on puisse reconstruire le conteneur sans recopier les ROMs.
 Les ROMs restent **dans le conteneur**, comme demandé. `mp0` reste un volume Proxmox
 (par exemple `local-lvm` ou `local-zfs`), pas un dossier de l'hôte.
 
 ## 3. Réseau
 
-### 3.1 Topologie
+### 3.1 Topologie (décision : LAN unique)
 
-- **`vmbr0` (LAN)** : accès à l'interface web depuis le téléphone ou la tablette. `eth0` du conteneur.
-- **`vmbr1` (bornes)** : bridge dédié, relié **soit** à une carte réseau physique branchée sur le
-  switch des bornes, **soit** à un VLAN (`vmbr0` VLAN-aware, tag configurable). `eth1` du conteneur
-  en `10.0.0.1/24`, **sans passerelle**.
-- **Aucun serveur DHCP** n'est lancé, nulle part. Les NetDIMM sont en IP fixe (réglée dans le
-  menu de test de la borne), comme sur l'image d'origine. On évite ainsi tout DHCP sauvage sur le LAN.
-- Pas de routage entre le LAN et le réseau des bornes. Seul le conteneur voit les deux.
+- Les bornes sont branchées **sur le LAN principal**, le même que celui de l'interface web
+  (`vmbr0`, `10.185.10.0/24`, passerelle `10.185.10.254`).
+- Le conteneur a une seule interface, `eth0`, en `10.185.10.230/24`.
+- **NAOMOX ne lance aucun serveur DHCP.** Les NetDIMM sont en IP fixe, réglée dans le menu de
+  test de la borne : *NETWORK SETTING*, avec l'IP, le masque et la passerelle.
+- **À prévoir côté LAN** : choisir pour les NetDIMM des IP **hors de la plage DHCP** de ta box
+  ou routeur, ou les réserver, pour éviter tout conflit.
+- La NetDIMM ne s'authentifie pas : n'importe quel poste du LAN peut lui envoyer une ROM.
+  C'était déjà le cas avec le Pi, et c'est acceptable sur un LAN domestique.
 
 ### 3.2 Plan d'adressage (modifiable)
 
-| Élément | Défaut (repris de l'image) | Où le modifier |
+| Élément | Défaut | Où le modifier |
 |---|---|---|
-| Sous-réseau des bornes | `10.0.0.0/24` | `config.yaml` → `network.cabinet_subnet` (utilisé par la découverte) ; IP de `eth1` via `pct set` (documenté) |
-| IP du netbooter côté bornes | `10.0.0.1` | `pct set <id> -net1 …` |
-| NetDIMM | `10.0.0.2`, `.3`, … | interface web → Bornes (stockées dans `state/cabinets.yaml`) |
+| IP de NAOMOX | `10.185.10.230/24` | `pct set 10230 -net0 …` (documenté dans DEPLOY.md) |
+| Sous-réseau scanné par la découverte | `10.185.10.0/24` | `config.yaml` → `network.cabinet_subnet` ou interface Réglages |
+| NetDIMM | libre, IP fixe hors plage DHCP (l'image d'origine utilisait `10.0.0.2`) | interface web → Bornes (`state/cabinets.yaml`) |
 | Port NetDIMM | `10703` | `config.yaml` → `netdimm.port` (utile pour le mock) |
+
+Si un jour les bornes passent sur un réseau isolé (carte réseau dédiée ou VLAN), il suffira
+d'ajouter une interface `net1` au CT. Le code n'en dépend pas.
 
 L'interface propose aussi une **découverte** : un balayage asynchrone du port 10703 sur le
 sous-réseau, qui remplace `nmap`. On ajoute ensuite la borne en un clic.
@@ -72,14 +81,14 @@ sous-réseau, qui remplace `nmap`. On ajoute ensuite la borne en un clic.
 
 | Chemin | Contenu | Écrit par |
 |---|---|---|
-| `/etc/wipi/config.yaml` | configuration statique : chemins, ports, authentification, sous-réseau, délais d'expiration | administrateur |
-| `/srv/wipi/roms/` | `*.bin.gz` (ou `.bin`) | upload web, scp ou rsync |
-| `/srv/wipi/media/{images,videos}/` | jaquettes et vidéos | upload web, scp |
-| `/srv/wipi/firmware/` | `FW_Netdimm_40x.bin.gz` (Sega, **jamais dans git**) | scp |
-| `/srv/wipi/homebrew/` | netbootmenu, naomidiag (domaine public, copiés depuis le dépôt à l'installation) | install.sh |
-| `/srv/wipi/state/cabinets.yaml` | bornes : nom, IP, type, jeu par défaut, time hack, mode serveur, options OSM | API (écriture atomique) |
-| `/srv/wipi/state/games.csv` | métadonnées des jeux, **même format que `romsinfo.csv`** (import et export compatibles) | API |
-| `/srv/wipi/state/history.jsonl` | historique des lancements | API |
+| `/etc/naomox/config.yaml` | configuration statique : chemins, ports, authentification, sous-réseau, délais d'expiration | administrateur |
+| `/srv/naomox/roms/` | `*.bin.gz` (ou `.bin`) | upload web, scp ou rsync |
+| `/srv/naomox/media/{images,videos}/` | jaquettes et vidéos | upload web, scp |
+| `/srv/naomox/firmware/` | `FW_Netdimm_40x.bin.gz` (Sega, **jamais dans git**) | scp |
+| `/srv/naomox/homebrew/` | netbootmenu, naomidiag (domaine public, copiés depuis le dépôt à l'installation) | install.sh |
+| `/srv/naomox/state/cabinets.yaml` | bornes : nom, IP, type, jeu par défaut, time hack, mode serveur, options OSM | API (écriture atomique) |
+| `/srv/naomox/state/games.csv` | métadonnées des jeux, **même format que `romsinfo.csv`** (import et export compatibles) | API |
+| `/srv/naomox/state/history.jsonl` | historique des lancements | API |
 
 Choix des fichiers plutôt que d'une base de données : les fichiers restent lisibles, éditables
 à la main, faciles à sauvegarder, et compatibles avec le CSV existant. Le volume est faible
@@ -91,15 +100,15 @@ Exemple de `config.yaml` :
 
 ```yaml
 paths:
-  data: /srv/wipi
+  data: /srv/naomox
 http:
   host: 0.0.0.0
   port: 80
 auth:
   enabled: false          # true → mot de passe unique, cookie de session
-  password_hash: ""       # généré par `wipi set-password`
+  password_hash: ""       # généré par `naomox set-password`
 network:
-  cabinet_subnet: 10.0.0.0/24
+  cabinet_subnet: 10.185.10.0/24
 netdimm:
   port: 10703
   connect_timeout: 5
@@ -114,7 +123,8 @@ timehack:
 
 ### 5.1 Pile technique
 
-- **Python 3.11** (version de Debian 12), **FastAPI**, uvicorn, pydantic, pyyaml.
+- **Python ≥ 3.11** (3.13 sur Debian 13, 3.11 sur Debian 12), installé dans un venv
+  `/opt/naomox/venv` avec **FastAPI**, uvicorn, pydantic et pyyaml.
 - **`netdimm`** vient de `dm_netboot` (domaine public). Il est déplacé dans `backend/vendor/`,
   avec les modules `naomi` et `arcadeutils` strictement nécessaires.
   - Le **protocole n'est pas modifié**.
@@ -127,7 +137,7 @@ timehack:
 - **Un worker par borne**, avec une file FIFO. Un seul job à la fois par DIMM, parce que la
   NetDIMM n'accepte qu'une connexion de contrôle.
 - **Types de jobs** : `launch`, `firmware`, `diag`, `info`.
-- **Transfert dans un sous-processus** (`python -m wipi.transfer --ip … --file …`).
+- **Transfert dans un sous-processus** (`python -m naomox.transfer --ip … --file …`).
   - Il émet sa progression en JSON lines sur stdout : `{"phase":"upload","sent":…,"total":…}`.
   - Cela permet une **annulation fiable** (SIGTERM, puis SIGKILL), un délai d'expiration strict
     et l'isolation des plantages.
@@ -145,7 +155,7 @@ timehack:
     depuis le web remplace le déclencheur evdev ;
   - **autoboot** : au démarrage du service, envoie le `default_game` (ou le menu) dès que la
     borne répond sur le port 10703 (logique de `singleboot.py`).
-- **Journaux** : `logging` vers stdout, donc journald (`journalctl -u wipinetbooter-api`).
+- **Journaux** : `logging` vers stdout, donc journald (`journalctl -u naomox`).
   Les 200 dernières lignes de chaque job sont exposées par l'API.
 
 ### 5.3 API REST (`/api/v1`)
@@ -180,7 +190,7 @@ Compatibilité des systèmes, reprise de `supported_systems()` :
 
 La table est surchargeable dans `config.yaml`.
 
-## 6. Frontend **[à valider]**
+## 6. Frontend
 
 - **Vite + Svelte (TypeScript)**, compilé en fichiers statiques servis par FastAPI.
   - Pas de Node.js en production : le build se fait en CI ou sur le poste de dev, et le dossier
@@ -204,11 +214,11 @@ La table est surchargeable dans `config.yaml`.
 
 ## 7. Sécurité
 
-- Utilisateur système dédié `wipi`, **aucun sudo**, aucune commande shell construite à partir
+- Utilisateur système dédié `naomox`, **aucun sudo**, aucune commande shell construite à partir
   des entrées. Les sous-processus sont lancés avec une liste d'arguments, et les chemins de ROM
   sont résolus puis vérifiés sous `paths.data/roms`.
 - Port 80 sans root grâce à `AmbientCapabilities=CAP_NET_BIND_SERVICE`.
-- Durcissement systemd : `NoNewPrivileges`, `ProtectSystem=strict`, `ReadWritePaths=/srv/wipi`,
+- Durcissement systemd : `NoNewPrivileges`, `ProtectSystem=strict`, `ReadWritePaths=/srv/naomox`,
   `ProtectHome`, `PrivateTmp`, `RestrictAddressFamilies=AF_INET AF_INET6 AF_UNIX`.
 - **Authentification optionnelle** : un mot de passe unique (haché en argon2 ou bcrypt), cookie
   de session HttpOnly et SameSite=Strict, CSRF via l'en-tête `X-Requested-With`. Désactivée par
@@ -234,29 +244,32 @@ La table est surchargeable dans `config.yaml`.
 - **Test de bout en bout** : backend + mock sur un port local. On lance un jeu fictif
   (ROM générée de quelques Mo) via l'API et on vérifie l'événement SSE `done`.
   Un test Playwright pilote le frontend (optionnel).
-- **Le mock sert aussi de « borne virtuelle »** en développement, via `wipi mock --port 10703`.
+- **Le mock sert aussi de « borne virtuelle »** en développement, via `naomox mock --port 10703`.
 
 ## 9. Arborescence prévue
 
 ```
 backend/
   pyproject.toml          # deps, ruff, pytest
-  wipi/                   # app FastAPI, workers, transfer, config, storage
+  naomox/                 # app FastAPI, workers, transfer, config, storage
   vendor/netdimm, naomi…  # copie de dm_netboot (Unlicense), sans le patch progress
   tests/
 frontend/                 # Vite + Svelte
 deploy/
   install.sh              # idempotent, Debian 12
-  wipinetbooter-api.service
+  naomox.service
   pct-create.sh           # exemple documenté
   config.example.yaml
 docs/  AUDIT.md  ARCHITECTURE.md  DEPLOY.md
 legacy/ (ou suppression) # ancien code Pi, retiré dans une phase dédiée
 ```
 
-## 10. Points à valider
+## 10. Décisions validées (2026-10-15)
 
-1. Frontend : **Vite + Svelte** ou JS natif sans build (§6).
-2. Stockage des données en fichiers (YAML et CSV) plutôt qu'en SQLite (§4).
-3. Réseau des bornes : **carte réseau dédiée** ou **VLAN** (et lequel) (§3.1).
-4. Authentification désactivée par défaut (§7).
+1. Frontend : **Vite + Svelte (TypeScript)**, compilé à l'avance (§6).
+2. Données en fichiers YAML et CSV, sans SQLite (§4).
+3. Bornes sur le **LAN principal**, le même que l'interface web. Pas de bridge dédié (§3.1).
+4. Authentification désactivée par défaut, activable (§7).
+5. Projet renommé **NAOMOX** (dépôt `metisnc/NAOMOX`).
+6. Déploiement : **CT 10230** sur le Proxmox `10.185.10.200`, IP `10.185.10.230`. On ne touche
+   à **rien d'autre** sur cet hôte de production.

@@ -1,6 +1,6 @@
 # --- ROMs, firmwares et médias : jamais dans git -------------------------
 # Les ROMs, firmwares NetDIMM (Sega) et médias (images/vidéos de jeux)
-# vivent dans le conteneur, sous le répertoire de données (/srv/wipi par défaut).
+# vivent dans le conteneur, sous le répertoire de données (/srv/naomox par défaut).
 roms/
 *.bin.gz
 *.gdi

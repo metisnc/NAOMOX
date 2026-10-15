@@ -1,9 +1,22 @@
-# CLAUDE.md — WiPiNetbooter-NG (cible Proxmox)
+# CLAUDE.md — NAOMOX (ex-WiPiNetbooter-NG, cible Proxmox)
 
 Netbooter pour cartes Sega Naomi / Naomi 2 / Chihiro / Triforce équipées d'une NetDIMM.
 Fork de [chunksin/WiPiNetbooter](https://github.com/chunksin/WiPiNetbooter) (Raspberry Pi),
-en cours de portage vers un **conteneur LXC Debian 12 sur Proxmox**, piloté depuis une
-interface web (téléphone / tablette).
+dépôt `metisnc/NAOMOX`, en cours de portage vers un **conteneur LXC Debian 13 sur Proxmox**,
+piloté depuis une interface web (téléphone / tablette).
+
+## Environnement de déploiement
+
+- Proxmox **de production** `10.185.10.200` (PVE 9.2, nœud `pve`). **Seul le CT 10230 nous
+  appartient** : ne jamais créer, modifier, arrêter ni télécharger quoi que ce soit d'autre
+  (pas de template, pas de stockage, pas de bridge).
+- CT **10230** `naomox` : LXC non privilégié, Debian 13 (Python 3.13), `eth0` sur `vmbr0` en
+  `10.185.10.230/24` (passerelle et DNS `10.185.10.254`). rootfs de 8 Go et `mp0` de 64 Go
+  montés sur `/srv/naomox` (`local-zfs`).
+- Accès : `ssh -i ~/.ssh/naomox_ed25519 root@10.185.10.230`. Aucun identifiant n'est stocké
+  dans le dépôt.
+- Git Bash sous Windows : exporter `MSYS_NO_PATHCONV=1` avant tout appel à l'API Proxmox
+  contenant un chemin `/…`, sinon le chemin est réécrit en `C:/Program Files/Git/…`.
 
 ## État du dépôt
 
@@ -30,8 +43,13 @@ interface web (téléphone / tablette).
    (écran, LCD, GPIO/relais, rotary, Wi-Fi AP, Bluetooth, NFC, card emulators, OpenJVS/FFB,
    cycraft). Voir `docs/AUDIT.md` §6.
 3. Interface **entièrement réécrite**, mobile-first, servie par le backend. Plus de PHP, plus de sudo.
-4. Toutes les cartes supportées ; **plan d'adressage modifiable** (défaut `10.0.0.0/24`).
-5. ROMs, firmwares et médias stockés **dans le conteneur** (`/srv/wipi`, configurable).
+4. Toutes les cartes supportées ; **plan d'adressage modifiable**. Les bornes sont sur le
+   **LAN principal** (`10.185.10.0/24`), comme l'interface web : pas de bridge dédié, et
+   **jamais de serveur DHCP**.
+4bis. Frontend Vite + Svelte (TS), compilé à l'avance ; données en YAML et CSV ;
+   authentification optionnelle, désactivée par défaut. Nom technique : `naomox` (service,
+   utilisateur, `/etc/naomox`, `/srv/naomox`, `/opt/naomox`).
+5. ROMs, firmwares et médias stockés **dans le conteneur** (`/srv/naomox`, configurable).
 6. Binaires déjà commités dans l'historique : retirés de l'arbre plus tard, **pas de
    réécriture d'historique** sans accord explicite.
 
