@@ -1,9 +1,13 @@
-# CLAUDE.md — NAOMOX (ex-WiPiNetbooter-NG, cible Proxmox)
+# CLAUDE.md — NAOMOX
 
-Netbooter pour cartes Sega Naomi / Naomi 2 / Chihiro / Triforce équipées d'une NetDIMM.
-Fork de [chunksin/WiPiNetbooter](https://github.com/chunksin/WiPiNetbooter) (Raspberry Pi),
-dépôt `metisnc/NAOMOX`, en cours de portage vers un **conteneur LXC Debian 13 sur Proxmox**,
-piloté depuis une interface web (téléphone / tablette).
+Netbooter web pour cartes Sega Naomi / Naomi 2 / Chihiro / Triforce équipées d'une NetDIMM,
+déployé dans un **conteneur LXC Debian 13 sur Proxmox** et piloté depuis un téléphone ou une tablette.
+
+- Dépôt de l'application : **`metisnc/NAOMOX`** (ce dépôt).
+- Origine : portage de [WiPiNetbooter](https://github.com/chunksin/WiPiNetbooter) (Raspberry Pi).
+  Le fork **`metisnc/WiPiNetbooter-NG`** reste la référence du code WiPi (PHP, scripts Pi,
+  `dm_netboot`) : **ne jamais le renommer ni y pousser le travail NAOMOX** (il est utilisé par un
+  autre workspace). L'historique NAOMOX en a été extrait (filter-branch) sans les binaires WiPi.
 
 ## Environnement de déploiement
 
@@ -18,26 +22,20 @@ piloté depuis une interface web (téléphone / tablette).
 - Git Bash sous Windows : exporter `MSYS_NO_PATHCONV=1` avant tout appel à l'API Proxmox
   contenant un chemin `/…`, sinon le chemin est réécrit en `C:/Program Files/Git/…`.
 
-## État du dépôt
+## Arborescence
 
-- **Code hérité Pi** (référence, sera retiré une fois le nouveau backend fonctionnel) :
-  - `var/www/html/` : interface PHP d'origine + `launcher/` (frontend 3.5" du fork).
-  - `sbin/piforce/` : scripts Python (`wipiloader.py`, …) et `*mode.txt` (options globales).
-  - `sbin/piforce/dm_netboot/` : bibliothèque **netdimm** de DragonMinded (domaine public),
-    Python 3, implémente le protocole NetDIMM (TCP 10703). **C'est le cœur réutilisé.**
-  - `boot/`, `etc/`, `root/`, `usr/` : fichiers système de l'image Pi (DietPi).
-- **Nouveau code** :
-  - `backend/` — paquet Python `naomox` (FastAPI) + `src/netdimm` vendorisé (3 patchs NAOMOX
-    commentés : port configurable, timeout socket, firmware 4.03 ; fichier de progression WiPi retiré).
-    Modules : `transfer` (sous-processus d'envoi), `jobs` (file par borne), `supervisor` (présence,
-    time hack, mode serveur, autoboot), `api` (REST + SSE), `storage`, `mock` (fausse NetDIMM).
-  - `frontend/` — Vite + Svelte 5 + TS, routage par hash, état dans `src/lib/state.svelte.ts`.
-  - `deploy/` — `install.sh` (idempotent), `naomox.service`, `push.sh`, `pct-create.sh`, Docker optionnel.
-  - `tools/dev-sync.sh` / `dev-pull.sh` — exécution des tests dans le CT (pas de Python sur le poste Windows).
+- `backend/` — paquet Python `naomox` (FastAPI) + `src/netdimm` vendorisé (3 patchs NAOMOX
+  commentés : port configurable, timeout socket, firmware 4.03 ; fichier de progression WiPi retiré).
+  Modules : `transfer` (sous-processus d'envoi), `jobs` (file par borne), `supervisor` (présence,
+  time hack, mode serveur, autoboot), `api` (REST + SSE), `storage`, `mock` (fausse NetDIMM).
+- `frontend/` — Vite + Svelte 5 + TS, routage par hash, état dans `src/lib/state.svelte.ts`.
+- `deploy/` — `install.sh` (idempotent), `naomox.service`, `push.sh`, `pct-create.sh`, Docker optionnel.
+- `homebrew/` — naomidiag et netbootmenu (DragonMinded, domaine public), installés par `install.sh`.
+- `tools/dev-sync.sh` / `dev-pull.sh` — exécution des tests dans le CT (pas de Python sur le poste Windows).
 
 ## Documentation
 
-- `docs/AUDIT.md` — audit de l'image WiPi 6.1.4 et du fork (flux de lancement, dépendances Pi).
+- `docs/AUDIT.md` — audit de l'image WiPi 6.1.4 et du fork `WiPiNetbooter-NG` (chemins `sbin/…`, `var/www/…` = ce fork) (flux de lancement, dépendances Pi).
 - `docs/ARCHITECTURE.md` — architecture cible et décisions.
 - `docs/DEPLOY.md` — déploiement Proxmox pas à pas + dépannage.
 - `docs/TESTING.md` — tests automatisés, e2e et checklist de test réel sur borne.
@@ -66,8 +64,8 @@ piloté depuis une interface web (téléphone / tablette).
 - Ne jamais modifier l'image d'origine (`../WiPi6-1-4*`). Lecture seule ; montage `.img`
   uniquement via `losetup -P -r` + `mount -o ro` (sur un hôte Linux).
 - Ne jamais commiter de ROM, firmware Sega, média de jeu ou binaire propriétaire.
-  Les homebrew DragonMinded (`dm_netboot/homebrew/`) sont du domaine public et tolérés.
-- Une branche par phase : `feat/proxmox-<phase>`. Petits commits atomiques, messages clairs.
+  Les homebrew DragonMinded (`homebrew/`) sont du domaine public et tolérés.
+- Branche `main` ; une branche par évolution (`feat/…`). Petits commits atomiques, messages clairs.
 - Signaler (ne pas supprimer silencieusement) toute fonction dépendant du matériel Pi.
 - Ne pas modifier le protocole NetDIMM.
 

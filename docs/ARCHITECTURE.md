@@ -270,6 +270,7 @@ legacy/ (ou suppression) # ancien code Pi, retiré dans une phase dédiée
 2. Données en fichiers YAML et CSV, sans SQLite (§4).
 3. Bornes sur le **LAN principal**, le même que l'interface web. Pas de bridge dédié (§3.1).
 4. Authentification désactivée par défaut, activable (§7).
-5. Projet renommé **NAOMOX** (dépôt `metisnc/NAOMOX`).
+5. Application dans un dépôt dédié **`metisnc/NAOMOX`**. Le fork `metisnc/WiPiNetbooter-NG` garde son
+   nom (utilisé par un autre workspace) et reste la référence du code WiPi d'origine.
 6. Déploiement : **CT 10230** sur le Proxmox `10.185.10.200`, IP `10.185.10.230`. On ne touche
    à **rien d'autre** sur cet hôte de production.
