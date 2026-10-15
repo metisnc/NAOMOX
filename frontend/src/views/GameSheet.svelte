@@ -1,47 +1,87 @@
 <script lang="ts">
+  import { untrack } from 'svelte';
+  import GameTile from '../components/GameTile.svelte';
+  import JobCard from '../components/JobCard.svelte';
+  import Marquee from '../components/Marquee.svelte';
   import Sheet from '../components/Sheet.svelte';
   import { ApiError, api } from '../lib/api';
-  import { SYSTEM_SHORT } from '../lib/format';
+  import {
+    controlsLabel,
+    genreIcon,
+    genreLabel,
+    orientationLabel,
+    publisher,
+    ratingInfo,
+    sameGenre,
+    systemColor,
+    systemShort,
+    variants,
+    displayName,
+  } from '../lib/catalog';
+  import { ago, bytes, romLabel } from '../lib/format';
   import { app } from '../lib/state.svelte';
-  import type { CabinetChoice, Game, Job } from '../lib/types';
+  import type { Cabinet, Game, Job } from '../lib/types';
 
-  let { open = $bindable(false), rom }: { open: boolean; rom: string } = $props();
+  let { open = $bindable(false), rom = $bindable() }: { open: boolean; rom: string } = $props();
 
+  const LAST_CAB = 'naomox.last-cabinet';
   const game = $derived(app.games.find((g) => g.rom === rom));
-  let choices = $state<CabinetChoice[] | null>(null);
+  let sheet = $state<ReturnType<typeof Sheet> | null>(null);
+  let chosen = $state<string | null>(null);
+  let jobId = $state<string | null>(null);
   let note = $state<string | null>(null);
   let busy = $state(false);
+  let muted = $state(true);
+  let videoOk = $state(true);
 
-  // Bornes compatibles (pour le choix explicite).
-  const compatible = $derived.by(() => {
+  const job = $derived<Job | undefined>(jobId ? app.jobs[jobId] : undefined);
+  const rating = $derived(game ? ratingInfo(game.rating) : null);
+  const similar = $derived(game ? sameGenre(app.games, game) : []);
+
+  const compatible = $derived.by<Cabinet[]>(() => {
     const g = game;
     const table = app.systems?.compatibility ?? {};
     return g ? app.cabinets.filter((c) => c.enabled && (table[c.type] ?? []).includes(g.system)) : [];
   });
 
+  // Au changement de jeu : réinitialiser et présélectionner la borne la plus probable.
   $effect(() => {
-    if (open) {
-      choices = null;
-      note = null;
-    }
+    void rom;
+    untrack(() => preselect());
   });
 
-  async function launch(cabinetId?: string) {
-    if (!game) return;
+  function preselect() {
+    jobId = null;
+    note = null;
+    videoOk = true;
+    let last: string | null = null;
+    try {
+      last = localStorage.getItem(LAST_CAB);
+    } catch {
+      last = null;
+    }
+    const online = compatible.filter((c) => c.status.online);
+    chosen = (online.find((c) => c.id === last) ?? online[0] ?? compatible.find((c) => c.id === last) ?? compatible[0])?.id ?? null;
+    sheet?.scrollTop();
+  }
+
+  const target = $derived(compatible.find((c) => c.id === chosen));
+
+  async function launch() {
+    if (!game || !target) return;
     busy = true;
     note = null;
     try {
-      const job = await api.post<Job>('/launch', { rom: game.rom, cabinet_id: cabinetId });
-      app.jobs[job.id] = job;
-      app.toast('info', `Envoi vers ${job.cabinet_name}…`);
-      open = false;
-    } catch (e) {
-      if (e instanceof ApiError && e.status === 409) {
-        choices = (e.detail.choices as CabinetChoice[]) ?? [];
-        note = e.message;
-      } else {
-        note = (e as Error).message;
+      const j = await api.post<Job>('/launch', { rom: game.rom, cabinet_id: target.id });
+      app.jobs[j.id] = j;
+      jobId = j.id;
+      try {
+        localStorage.setItem(LAST_CAB, target.id);
+      } catch {
+        /* stockage indisponible */
       }
+    } catch (e) {
+      note = e instanceof ApiError ? e.message : (e as Error).message;
     } finally {
       busy = false;
     }
@@ -51,63 +91,168 @@
     const u = await app.run(() => api.patch<Game>(`/games/${encodeURIComponent(g.rom)}`, { favourite: !g.favourite }));
     if (u) app.setGame(u);
   }
+
+  const done = $derived(job?.state === 'done');
+  const running = $derived(job && !['done', 'error', 'cancelled'].includes(job.state));
 </script>
 
-<Sheet bind:open title={game?.name ?? ''}>
+<Sheet bind:this={sheet} bind:open title={game?.name ?? ''} wide bare>
   {#if game}
-    <div class="stack">
-      {#if game.video}
-        <!-- svelte-ignore a11y_media_has_caption -->
-        <video src={game.video} poster={game.image ?? undefined} autoplay muted loop playsinline></video>
-      {:else if game.image}
-        <img src={game.image} alt="" />
-      {/if}
-      <div class="row">
-        <span class="badge">{SYSTEM_SHORT[game.system] ?? game.system}</span>
-        {#if game.year}<span class="badge">{game.year}</span>{/if}
-        {#if game.manufacturer}<span class="badge">{game.manufacturer}</span>{/if}
-        {#if game.genre}<span class="badge">{game.genre}</span>{/if}
-        {#if game.orientation}<span class="badge">{game.orientation}</span>{/if}
-        <span class="grow"></span>
-        <button class="small ghost fav" class:on={game.favourite} onclick={() => toggleFav(game)} aria-label="Favori">
-          {game.favourite ? '★' : '☆'}
-        </button>
-      </div>
-      {#if game.controls}<p class="muted small">Commandes : {game.controls}</p>{/if}
-      <p class="muted small mono">{game.rom}</p>
+    <article class="fiche" style="--sys:{systemColor(game.system)}">
+      <header class="hero">
+        {#if game.video && videoOk}
+          <!-- svelte-ignore a11y_media_has_caption -->
+          <video src={game.video} autoplay loop playsinline {muted} onerror={() => (videoOk = false)}></video>
+          <button class="sound" onclick={() => (muted = !muted)} aria-label={muted ? 'Activer le son' : 'Couper le son'}>{muted ? '🔇' : '🔊'}</button>
+        {/if}
+        <div class="glow"></div>
+        <div class="logo"><Marquee image={game.image} name={game.name} system={game.system} size="lg" /></div>
+      </header>
 
-      {#if !game.present}
-        <p class="warn">ROM absente du serveur : impossible de lancer ce jeu.</p>
-      {:else if !game.enabled}
-        <p class="warn">Jeu désactivé (activable dans Réglages).</p>
-      {:else if !compatible.length}
-        <p class="warn">Aucune borne compatible {SYSTEM_SHORT[game.system]} n’est configurée. <a href="#/bornes" onclick={() => (open = false)}>Ajouter une borne</a></p>
-      {:else}
-        <button class="primary launch" disabled={busy} onclick={() => launch()}>▶ Lancer</button>
-        {#if note}<p class="warn">{note}</p>{/if}
-        {#if choices !== null || compatible.length > 1}
-          <div class="stack">
-            <span class="muted small">Choisir la borne :</span>
-            {#each choices ?? compatible.map((c) => ({ id: c.id, name: c.name, ip: c.ip, type: c.type, online: !!c.status.online })) as c (c.id)}
-              <button class="choice" disabled={busy} onclick={() => launch(c.id)}>
-                <span class="dot" class:on={c.online} class:off={!c.online}></span>
-                <span class="grow">{c.name}</span>
-                <span class="muted small">{c.ip}</span>
-              </button>
+      <div class="content">
+        <div class="main">
+          <div class="titlebar">
+            <div class="grow">
+              <h2>{displayName(game)}{#each variants(game) as v (v)}<span class="variant">{v}</span>{/each}</h2>
+              <p class="sub">{game.manufacturer || 'Éditeur inconnu'}{game.year ? ` · ${game.year}` : ''}</p>
+            </div>
+            <button class="fav" class:on={game.favourite} onclick={() => toggleFav(game)} aria-label={game.favourite ? 'Retirer des favoris' : 'Ajouter aux favoris'}>
+              {game.favourite ? '★' : '☆'}
+            </button>
+          </div>
+
+          <div class="tags">
+            <span class="tag sys"><i></i>{systemShort(game.system)}</span>
+            {#if game.genre}<span class="tag">{genreIcon(game.genre)} {genreLabel(game.genre)}</span>{/if}
+            {#if rating}<span class="tag" style="--c:{rating.color}"><i class="r"></i>{rating.label}</span>{/if}
+          </div>
+
+          <dl class="facts">
+            <div><dt>Commandes</dt><dd>{controlsLabel(game.controls)}</dd></div>
+            <div><dt>Écran</dt><dd>{orientationLabel(game.orientation)}</dd></div>
+            <div><dt>Éditeur</dt><dd>{publisher(game.manufacturer)}</dd></div>
+            <div><dt>Parties lancées</dt><dd>{game.plays || 'jamais'}{game.last_played ? ` · ${ago(game.last_played)}` : ''}</dd></div>
+            <div><dt>Taille ROM</dt><dd>{game.size ? bytes(game.size) : 'absente'}</dd></div>
+            <div><dt>ID</dt><dd class="mono">{game.game_id || '—'}</dd></div>
+          </dl>
+        </div>
+
+        <aside class="launch">
+          {#if !game.present}
+            <p class="warn">ROM absente du serveur : ajoutez <span class="mono">{game.rom}</span> dans Réglages → Fichiers.</p>
+          {:else if !game.enabled}
+            <p class="warn">Jeu désactivé (Réglages → Jeux).</p>
+          {:else if !compatible.length}
+            <p class="warn">Aucune borne {systemShort(game.system)} configurée. <a href="#/bornes" onclick={() => (open = false)}>Ajouter une borne</a></p>
+          {:else if job && (running || done || job.state === 'error')}
+            <JobCard {job} />
+            {#if done}
+              <p class="ok">🎮 {game.name} tourne sur {job.cabinet_name}. Bon jeu !</p>
+              <button onclick={() => (open = false)}>Fermer</button>
+            {:else if job.state === 'error'}
+              <button onclick={() => (jobId = null)}>Choisir une autre borne</button>
+            {/if}
+          {:else}
+            <h4>Lancer sur</h4>
+            <div class="cabs" role="radiogroup" aria-label="Borne">
+              {#each compatible as c (c.id)}
+                <button
+                  class="cab"
+                  class:sel={chosen === c.id}
+                  role="radio"
+                  aria-checked={chosen === c.id}
+                  onclick={() => (chosen = c.id)}
+                >
+                  <span class="dot" class:on={c.status.online === true} class:off={c.status.online === false}></span>
+                  <span class="cn">
+                    <strong>{c.name}</strong>
+                    <small>
+                      {c.status.online === false ? 'hors ligne' : c.status.busy ? 'transfert en cours' : c.status.game ? `joue à ${romLabel(c.status.game, app.names)}` : 'en ligne'}
+                    </small>
+                  </span>
+                </button>
+              {/each}
+            </div>
+            <button class="primary go" disabled={busy || !target} onclick={launch}>
+              ▶ Lancer{target ? ` sur ${target.name}` : ''}
+            </button>
+            {#if target && target.status.online === false}
+              <p class="hint">La borne semble éteinte : NAOMOX réessaiera quelques secondes avant d’abandonner.</p>
+            {/if}
+            {#if target?.status.busy}<p class="hint">Un transfert est en cours : ce lancement passera ensuite.</p>{/if}
+            {#if note}<p class="warn">{note}</p>{/if}
+          {/if}
+        </aside>
+      </div>
+
+      {#if similar.length}
+        <section class="similar">
+          <h4>Dans le même genre</h4>
+          <div class="row">
+            {#each similar as g (g.rom)}
+              <div class="cell"><GameTile game={g} onopen={(x) => (rom = x.rom)} /></div>
             {/each}
           </div>
-        {/if}
+        </section>
       {/if}
-    </div>
+    </article>
   {/if}
 </Sheet>
 
 <style>
-  video, img { width: 100%; border-radius: 12px; background: #000; max-height: 42dvh; object-fit: contain; }
-  .launch { font-size: 1.15rem; min-height: 56px; }
-  .warn { color: var(--warn); margin: 0; }
-  .fav { font-size: 1.4rem; color: var(--fg-2); }
-  .fav.on { color: var(--accent); }
+  .fiche { --r: 22px; }
+  .hero {
+    position: relative; display: grid; place-items: center; overflow: hidden;
+    width: 100%; height: min(56.25vw, 46dvh, 560px); min-height: 210px; border-radius: var(--r) var(--r) 0 0;
+    background: radial-gradient(120% 120% at 50% 10%, color-mix(in srgb, var(--sys) 45%, #000), #040507 75%);
+  }
+  .hero video { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; opacity: 0.6; }
+  .glow { position: absolute; inset: 0; background: linear-gradient(180deg, rgb(0 0 0 / 0.15) 0%, transparent 35%, rgb(0 0 0 / 0.55) 75%, var(--bg-2) 100%); }
+  .logo { position: relative; width: min(78%, 460px); }
+  .sound {
+    position: absolute; left: 12px; top: 14px; z-index: 2; width: 38px; min-height: 38px; padding: 0; border-radius: 50%;
+    background: rgb(0 0 0 / 0.55); border-color: rgb(255 255 255 / 0.2); backdrop-filter: blur(6px);
+  }
+
+  .content { display: grid; gap: 1.2rem; padding: 0.4rem 1rem 0; }
+  @media (min-width: 760px) { .content { grid-template-columns: 1fr 320px; align-items: start; } }
+
+  .titlebar { display: flex; align-items: flex-start; gap: 0.6rem; }
+  h2 { margin: 0; font-size: 1.45rem; line-height: 1.15; color: var(--fg); }
+  .variant { display: inline-block; margin-left: 0.4rem; vertical-align: middle; font-size: 0.72rem; font-weight: 700; padding: 0.1rem 0.5rem; border-radius: 99px; background: var(--bg-3); color: var(--fg-2); }
+  .sub { margin: 0.25rem 0 0; color: var(--fg-2); }
+  .fav { width: 46px; min-height: 46px; padding: 0; border-radius: 50%; font-size: 1.4rem; color: var(--fg-2); }
+  .fav.on { color: #ffc63d; border-color: color-mix(in srgb, #ffc63d 50%, var(--line)); background: color-mix(in srgb, #ffc63d 14%, var(--bg-3)); }
+
+  .tags { display: flex; flex-wrap: wrap; gap: 0.4rem; margin: 0.8rem 0; }
+  .tag { display: inline-flex; align-items: center; gap: 0.35rem; padding: 0.25rem 0.7rem; border-radius: 99px; background: var(--bg-3); font-size: 0.85rem; }
+  .tag.sys { background: color-mix(in srgb, var(--sys) 22%, var(--bg-3)); font-weight: 700; }
+  .tag i { width: 9px; height: 9px; border-radius: 50%; background: var(--sys); box-shadow: 0 0 8px var(--sys); }
+  .tag i.r { background: var(--c); box-shadow: none; }
+
+  .facts { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0.5rem; margin: 0; }
+  @media (min-width: 560px) { .facts { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+  .facts div { background: var(--bg); border: 1px solid var(--line); border-radius: 12px; padding: 0.55rem 0.7rem; min-width: 0; }
+  dt { font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.06em; color: var(--fg-2); }
+  dd { margin: 0.15rem 0 0; font-weight: 600; font-size: 0.92rem; overflow: hidden; text-overflow: ellipsis; }
   .mono { font-family: ui-monospace, monospace; word-break: break-all; }
-  .choice { justify-content: flex-start; gap: 0.7rem; }
+
+  .launch { display: grid; gap: 0.6rem; background: var(--bg); border: 1px solid var(--line); border-radius: 16px; padding: 0.9rem; }
+  @media (min-width: 760px) { .launch { position: sticky; top: 1rem; } }
+  h4 { margin: 0; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.08em; color: var(--fg-2); }
+  .cabs { display: grid; gap: 0.4rem; }
+  .cab { justify-content: flex-start; gap: 0.65rem; text-align: left; padding: 0.55rem 0.7rem; border-radius: 12px; background: var(--bg-2); }
+  .cab.sel { border-color: var(--accent); box-shadow: inset 0 0 0 1px var(--accent); }
+  .cn { display: grid; min-width: 0; }
+  .cn small { color: var(--fg-2); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .go { min-height: 56px; font-size: 1.1rem; border-radius: 14px; box-shadow: 0 8px 24px -8px var(--accent); }
+  .warn { color: var(--warn); margin: 0; }
+  .ok { color: var(--ok); margin: 0; font-weight: 600; }
+  .hint { margin: 0; font-size: 0.82rem; color: var(--fg-2); }
+
+  .similar { padding: 1.2rem 1rem 0; }
+  .similar h4 { margin-bottom: 0.6rem; }
+  .row { display: grid; grid-auto-flow: column; grid-auto-columns: minmax(150px, 42%); gap: 0.6rem; overflow-x: auto; scroll-snap-type: x mandatory; scrollbar-width: none; padding-bottom: 0.4rem; }
+  .cell { scroll-snap-align: start; display: grid; }
+  @media (min-width: 760px) { .row { grid-auto-columns: 190px; } }
 </style>

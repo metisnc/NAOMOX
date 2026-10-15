@@ -39,16 +39,18 @@ test('ajouter une borne, scanner, lancer un jeu fictif jusqu’à « Terminé »
 
   // 4. Lancement depuis l'onglet Jeux.
   await page.getByRole('link', { name: 'Jeux' }).click();
-  await page.getByPlaceholder('Rechercher un jeu…').fill('naomox_e2e');
+  await page.getByPlaceholder('Jeu, éditeur, genre, année…').fill('naomox_e2e');
   await page.getByRole('button', { name: new RegExp(GAME) }).click();
   const sheet = page.getByRole('dialog', { name: GAME });
   await page.screenshot({ path: `${SHOTS}/2-fiche.png` });
-  await sheet.getByRole('button', { name: '▶ Lancer' }).click();
+  await sheet.getByRole('button', { name: '▶ Lancer sur Borne virtuelle' }).click();
 
-  // 5. Suivi en direct (bandeau) puis « Terminé » dans l'activité.
-  await expect(page.locator('.banner .job')).toBeVisible();
+  // 5. Suivi en direct dans la fiche, puis « Terminé » dans l'activité.
+  await expect(sheet.locator('.job')).toBeVisible();
   await page.screenshot({ path: `${SHOTS}/3-transfert.png` });
-  await expect(page.locator('.toast.ok', { hasText: 'lancé sur Borne virtuelle' })).toBeVisible({ timeout: 60_000 });
+  await expect(sheet.getByText('tourne sur Borne virtuelle')).toBeVisible({ timeout: 60_000 });
+  await expect(page.locator('.toast.ok', { hasText: 'lancé sur Borne virtuelle' })).toBeVisible();
+  await page.keyboard.press('Escape');
   await page.getByRole('link', { name: 'Activité' }).click();
   await expect(page.locator('.history li').first()).toContainText('Terminé');
   await expect(page.locator('.history li').first()).toContainText(GAME);
