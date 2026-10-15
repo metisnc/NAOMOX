@@ -337,13 +337,18 @@ class NetDimm:
             # you set the 'DEFAULT_TIMEOUT_HANDLING' environment variable. If you are not
             # on OSX and you set 'ALTERNATE_TIMEOUT_HANDLING' the alternate will be enabled
             # as well.
+            #
+            # NAOMOX: setblocking(True) after settimeout(15) resets the timeout to None, so
+            # connect() waited for the OS SYN timeout (~2 min) and a DIMM that stops answering
+            # blocked recv() forever. We keep the alternate (OSX) path as upstream and, on the
+            # default path, honour self.timeout (15 s Naomi, 40 s Chihiro/Triforce) for connect
+            # and reads. Packets on the wire are unchanged.
             if (sys.platform == 'darwin' or os.environ.get('ALTERNATE_TIMEOUT_HANDLING')) and (not os.environ.get('DEFAULT_TIMEOUT_HANDLING')):
                 self.sock.settimeout(15)
                 self.sock.setblocking(True)
                 self.sock.connect((self.ip, self.port))
             else:
-                self.sock.settimeout(15)
-                self.sock.setblocking(True)
+                self.sock.settimeout(self.timeout)
                 self.sock.connect((self.ip, self.port))
 
         except Exception as e:
