@@ -48,9 +48,7 @@ Options : à placer devant la commande, par exemple
 | `ROOT_PASSWORD` | `naomox` | mot de passe root du conteneur |
 | `NAOMOX_VERSION` | `latest` | version publiée à installer (`v0.1.0`…) |
 
-> **Dépôt privé** : tant que le dépôt n'est pas public, ajouter un jeton GitHub en lecture :
-> `export GITHUB_TOKEN=ghp_…`, puis
-> `bash -c "$(curl -fsSL -H "Authorization: Bearer $GITHUB_TOKEN" https://raw.githubusercontent.com/metisnc/NAOMOX/main/deploy/proxmox-install.sh)"`.
+> Le conteneur a besoin d'un accès Internet pendant l'installation (paquets Debian et Python).
 
 Ensuite : déposer les ROMs dans `/srv/naomox/roms` (ou Réglages → Fichiers), Réglages → Jeux →
 **Scanner**, puis Bornes → **Rechercher**.

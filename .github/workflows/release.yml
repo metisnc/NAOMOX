@@ -36,6 +36,14 @@ jobs:
           npm run check
           npm run build
 
+      - name: Numéro de version = tag
+        if: startsWith(github.ref, 'refs/tags/v')
+        run: |
+          v="${GITHUB_REF_NAME#v}"
+          sed -i "s/^__version__ = .*/__version__ = \"$v\"/" backend/src/naomox/__init__.py
+          sed -i "0,/^version = .*/s//version = \"$v\"/" backend/pyproject.toml
+          grep -H "version" backend/src/naomox/__init__.py
+
       - name: Archive
         run: |
           tar --owner=0 --group=0 --exclude='__pycache__' --exclude='*.egg-info' \
