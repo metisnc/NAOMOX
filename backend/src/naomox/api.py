@@ -63,6 +63,9 @@ class Naomox:
     def __init__(self, config: Config) -> None:
         self.config = config
         config.ensure_dirs()
+        # Fichiers de décompression laissés par un transfert interrompu (arrêt brutal, coupure).
+        for leftover in config.paths.tmp.glob("naomox-*.bin"):
+            leftover.unlink(missing_ok=True)
         state = config.paths.state
         seed = resources.files("naomox") / "data" / "romsinfo.csv"
         with resources.as_file(seed) as seed_path:

@@ -18,6 +18,7 @@ import contextlib
 import gzip
 import json
 import os
+import signal
 import sys
 import tempfile
 import time
@@ -187,6 +188,8 @@ def run(
 
 
 def main(argv: list[str] | None = None) -> int:
+    # Annulation / arrêt du service (SIGTERM) : sortir proprement pour supprimer le fichier temporaire.
+    signal.signal(signal.SIGTERM, lambda *_: sys.exit(143))
     p = argparse.ArgumentParser(prog="python -m naomox.transfer", description=__doc__.split("\n")[0])
     p.add_argument("--ip", required=True)
     p.add_argument("--file", required=True)

@@ -260,3 +260,11 @@ async def test_firmware_refused_when_unreachable(tmp_path: Path):
                 f"/api/v1/cabinets/{cab['id']}/firmware", json={"version": "4.03", "confirm": True}, headers=H
             )
             assert r.status_code == 504 and r.json()["detail"]["error"] == "unreachable"
+
+
+async def test_startup_removes_leftover_temp_files(tmp_path: Path):
+    cfg = config(tmp_path)
+    stale = cfg.paths.tmp / "naomox-abc123.bin"
+    stale.write_bytes(b"x" * 1000)
+    create_app(cfg)
+    assert not stale.exists()

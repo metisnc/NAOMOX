@@ -184,3 +184,17 @@ async def test_manual_retry_creates_new_job(tmp_path, mock_dimm: MockNetDimm, ro
     await wait_final(j2)
     assert j2.state == "done"
     await jm.shutdown()
+
+
+async def test_cancel_during_decompression_removes_temp_file(tmp_path, mock_dimm: MockNetDimm, rom_factory):
+    cfg = make_config(tmp_path, mock_dimm.port, socket_timeout=30)
+    jm = make_manager(cfg)
+    mock_dimm.faults.mute = True  # le transfert reste bloqué après la décompression
+    rom, _ = rom_factory(size=3_000_000)
+    job = jm.submit(CAB, "launch", rom, rom.name)
+    await asyncio.wait_for(mock_dimm.packet_received.wait(), 15)
+    assert list(cfg.paths.tmp.glob("naomox-*.bin"))  # fichier décompressé présent
+    await jm.cancel(job.id)
+    await wait_final(job, 10)
+    assert list(cfg.paths.tmp.glob("naomox-*.bin")) == []
+    await jm.shutdown()
