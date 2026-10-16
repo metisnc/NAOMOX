@@ -1,16 +1,16 @@
 #!/usr/bin/env bash
 # Création du conteneur LXC NAOMOX — à exécuter SUR L'HÔTE Proxmox (root).
-# Valeurs par défaut = déploiement de référence (CT 10230, 10.185.10.230).
+# Préférer deploy/proxmox-install.sh (une commande). Ce script ne crée que le conteneur.
 # Ne modifie rien d'autre que le conteneur créé ; échoue si l'ID existe déjà.
 #
-#   CTID=10230 IP=10.185.10.230/24 GW=10.185.10.254 ./pct-create.sh
+#   CTID=120 IP=192.168.1.230/24 GW=192.168.1.1 ./pct-create.sh      (défaut : ID libre, DHCP)
 set -euo pipefail
 
-CTID="${CTID:-10230}"
+CTID="${CTID:-$(pvesh get /cluster/nextid)}"
 HOSTNAME="${HOSTNAME_CT:-naomox}"
-IP="${IP:-10.185.10.230/24}"
-GW="${GW:-10.185.10.254}"
-DNS="${DNS:-10.185.10.254}"
+IP="${IP:-dhcp}"
+GW="${GW:-}"
+DNS="${DNS:-}"
 BRIDGE="${BRIDGE:-vmbr0}"
 VLAN="${VLAN:-}"                       # ex. VLAN=30 si les bornes sont sur un VLAN
 STORAGE="${STORAGE:-local-zfs}"
@@ -27,7 +27,7 @@ pct status "$CTID" >/dev/null 2>&1 && { echo "Le CT $CTID existe déjà, abandon
 pveam list "${TEMPLATE%%:*}" | grep -q "${TEMPLATE#*:}" || {
   echo "Template absent : $TEMPLATE (pveam update && pveam download local <template>)" >&2; exit 1; }
 
-net="name=eth0,bridge=${BRIDGE},ip=${IP},gw=${GW},firewall=0"
+if [ "$IP" = dhcp ]; then net="name=eth0,bridge=${BRIDGE},ip=dhcp,firewall=0"; else net="name=eth0,bridge=${BRIDGE},ip=${IP},gw=${GW},firewall=0"; fi
 [ -n "$VLAN" ] && net="${net},tag=${VLAN}"
 
 args=(
@@ -36,10 +36,11 @@ args=(
   --cores "$CORES" --memory "$MEMORY" --swap 512
   --rootfs "${STORAGE}:${ROOTFS_GB}"
   --mp0 "${STORAGE}:${DATA_GB},mp=/srv/naomox,backup=1"
-  --net0 "$net" --nameserver "$DNS"
+  --net0 "$net"
   --onboot 1 --tags naomox
   --password "$ROOT_PASSWORD"
 )
+[ -n "$DNS" ] && args+=(--nameserver "$DNS")
 [ -n "$SSH_KEY" ] && args+=(--ssh-public-keys "$SSH_KEY")
 if [ -f "$NOTES" ]; then
   args+=(--description "$(cat "$NOTES")")

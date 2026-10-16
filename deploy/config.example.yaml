@@ -21,7 +21,8 @@ auth:
 
 network:
   # Sous-réseau balayé par « Rechercher » (port NetDIMM). Modifiable dans Réglages.
-  cabinet_subnet: 10.185.10.0/24
+  # Vide = le /24 de l'IP du conteneur. Exemple : 192.168.1.0/24
+  cabinet_subnet:
 
 netdimm:
   port: 10703

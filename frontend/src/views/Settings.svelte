@@ -122,7 +122,7 @@
       <br />Lettres, chiffres et tirets.
     </p>
     <label class="field">Sous-réseau des bornes (recherche automatique)
-      <input bind:value={subnet} placeholder="10.185.10.0/24" />
+      <input bind:value={subnet} placeholder="192.168.1.0/24" />
     </label>
     <div class="row">
       <span class="grow"></span>

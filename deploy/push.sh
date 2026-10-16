@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
 # Depuis un poste de dev : compile le frontend, copie le dépôt utile dans le CT
 # et lance l'installation idempotente.
-#   NAOMOX_HOST=root@10.185.10.230 deploy/push.sh
+#   NAOMOX_HOST=root@naomox.local deploy/push.sh
 set -euo pipefail
-HOST="${NAOMOX_HOST:-root@10.185.10.230}"
+HOST="${NAOMOX_HOST:-root@naomox.local}"
 KEY="${NAOMOX_KEY:-$HOME/.ssh/naomox_ed25519}"
 cd "$(dirname "$0")/.."
 

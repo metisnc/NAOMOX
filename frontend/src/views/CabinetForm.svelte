@@ -24,7 +24,7 @@
     osm_mode: 'once',
   });
 
-  // « 10,185,10,5 » ou « 10.185.10.5 » avec espaces → « 10.185.10.5 ».
+  // « 192,168,1,50 » ou « 192.168.1.50 » avec espaces → « 192.168.1.50 ».
   const normalizeIp = (v: string) => v.trim().replace(/[,;\s]+/g, '.').replace(/\.{2,}/g, '.');
 
   let form = $state<CabinetFields>(blank());
@@ -89,7 +89,7 @@
         spellcheck="false"
         bind:value={form.ip}
         onblur={() => (form.ip = normalizeIp(form.ip))}
-        placeholder="10.185.10.50"
+        placeholder="192.168.1.50"
       />
     </label>
     <label class="field">Type de borne

@@ -4,7 +4,7 @@
 #   tools/dev-sync.sh                      # synchronise seulement
 #   tools/dev-sync.sh 'pytest -q'          # synchronise puis lance les tests
 set -euo pipefail
-HOST="${NAOMOX_HOST:-root@10.185.10.230}"
+HOST="${NAOMOX_HOST:-root@naomox.local}"
 KEY="${NAOMOX_KEY:-$HOME/.ssh/naomox_ed25519}"
 DEST=/opt/naomox-dev
 cd "$(dirname "$0")/.."
