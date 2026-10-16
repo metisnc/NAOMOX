@@ -41,6 +41,8 @@
   .marquee {
     position: relative;
     display: grid;
+    width: 100%;
+    box-sizing: border-box;
     place-items: center;
     overflow: hidden;
     aspect-ratio: 16 / 7;
@@ -70,15 +72,23 @@
   .marquee.lg { aspect-ratio: auto; padding: 0; background: none; }
   .marquee.lg::after { display: none; }
 
+  /* Zone du logo identique pour toutes les tuiles (logos recadrés côté serveur) :
+     un logo large s'appuie sur la largeur, un logo haut sur la hauteur. */
   img {
-    max-width: 100%;
-    max-height: 100%;
+    position: absolute;
+    left: 9%;
+    top: 13%;
+    width: 82%;
+    height: 70%;
     object-fit: contain;
-    transition: transform 0.25s ease, filter 0.25s ease;
     filter: drop-shadow(0 3px 6px rgb(0 0 0 / 0.55));
   }
   .marquee.dark img { filter: drop-shadow(0 2px 3px rgb(0 0 0 / 0.25)); }
   .marquee.lg img {
+    position: static;
+    width: auto;
+    height: auto;
+    max-width: 100%;
     max-height: 150px;
     filter: drop-shadow(0 0 1px #fff) drop-shadow(0 0 18px color-mix(in srgb, var(--sys) 70%, transparent))
       drop-shadow(0 6px 14px rgb(0 0 0 / 0.7));
@@ -86,7 +96,8 @@
   .marquee.lg.dark img {
     filter: drop-shadow(0 0 2px #fff) drop-shadow(0 0 2px #fff) drop-shadow(0 0 22px rgb(255 255 255 / 0.85));
   }
-  .lit img { transform: scale(1.05); }
+  /* Survol : la tuile s'illumine, le logo garde sa taille. */
+  .lit::after { opacity: 1; }
 
   .title {
     font-weight: 900;

@@ -34,6 +34,7 @@
     position: relative;
     display: grid;
     grid-template-rows: auto auto;
+    grid-template-columns: minmax(0, 1fr);
     width: 100%;
     min-height: 0;
     padding: 0;
@@ -51,8 +52,8 @@
   }
   .tile:active { transform: scale(0.985); }
   .tile.off { opacity: 0.42; filter: grayscale(0.6); }
-  .art { display: block; }
-  .art :global(.marquee) { aspect-ratio: 3 / 1; border-radius: 0; padding: 4% 8%; }
+  .art { display: block; width: 100%; }
+  .art :global(.marquee) { aspect-ratio: 3 / 1; border-radius: 0; }
   .label {
     display: flex;
     align-items: center;
