@@ -15,6 +15,7 @@
 #   STORAGE=…         stockage des disques (défaut : premier stockage acceptant les CT)
 #   ROOTFS_GB=8  DATA_GB=64  CORES=2  MEMORY=1024
 #   ROOT_PASSWORD=naomox                   mot de passe root du conteneur
+#   SSH_PASSWORD=…    mot de passe SSH/SFTP du compte naomox (défaut : celui de root ; vide = pas d'accès SSH)
 #   NAOMOX_VERSION=latest | v0.2.0         version à installer
 #   GITHUB_TOKEN=…    jeton GitHub (lecture) tant que le dépôt est privé
 #   NAOMOX_YES=1      ne pas demander de confirmation
@@ -43,6 +44,7 @@ DATA_GB="${DATA_GB:-64}"
 CORES="${CORES:-2}"
 MEMORY="${MEMORY:-1024}"
 ROOT_PASSWORD="${ROOT_PASSWORD:-naomox}"
+SSH_PASSWORD="${SSH_PASSWORD-$ROOT_PASSWORD}"
 STORAGE="${STORAGE:-$(pvesm status -content rootdir 2>/dev/null | awk 'NR>1 && $3=="active" {print $1; exit}')}"
 
 pct status "$CTID" >/dev/null 2>&1 && die "le conteneur $CTID existe déjà (CTID=… pour en choisir un autre)"
@@ -125,7 +127,7 @@ pct exec "$CTID" -- getent hosts deb.debian.org >/dev/null 2>&1 || die "le conte
 
 msg "Installation de NAOMOX dans le conteneur (quelques minutes)"
 pct push "$CTID" "$work/naomox.tar.gz" /root/naomox.tar.gz
-pct exec "$CTID" -- bash -c '
+pct exec "$CTID" -- env NAOMOX_SSH_PASSWORD="$SSH_PASSWORD" bash -c '
   set -e
   export DEBIAN_FRONTEND=noninteractive
   rm -rf /root/naomox-src && mkdir -p /root/naomox-src
@@ -138,4 +140,5 @@ echo
 ok "NAOMOX $tag installé dans le conteneur $CTID"
 echo "   Interface : http://$HOSTNAME_CT.local  ou  http://$addr"
 echo "   Console   : root / $ROOT_PASSWORD   (onglet Notes du conteneur pour le reste)"
+if [ -n "$SSH_PASSWORD" ]; then echo "   SSH/SFTP  : ssh naomox@$addr  (mot de passe : $SSH_PASSWORD)"; fi
 echo "   Ensuite   : déposer les ROMs dans /srv/naomox/roms puis Réglages → Jeux → Scanner"

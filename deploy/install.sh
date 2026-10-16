@@ -5,6 +5,8 @@
 #   sudo ./deploy/install.sh --no-start      # installe sans (re)démarrer le service
 #   sudo ./deploy/install.sh --uninstall     # retire service, code et config (garde /srv/naomox)
 #
+#   NAOMOX_SSH_PASSWORD=… ./deploy/install.sh  # ouvre aussi l'accès SSH/SFTP du compte naomox
+#
 # Ne touche jamais aux données (/srv/naomox) ni à une config existante (/etc/naomox/config.yaml).
 set -euo pipefail
 
@@ -102,6 +104,15 @@ if ! cmp -s "$REPO/deploy/avahi-naomox.service" /etc/avahi/services/naomox.servi
   systemctl restart avahi-daemon 2>/dev/null || true
 fi
 systemctl enable -q avahi-daemon 2>/dev/null || true
+
+if [ -n "${NAOMOX_SSH_PASSWORD:-}" ]; then
+  log "Accès SSH / SFTP : compte $USER_NAME (sans sudo ; administration : su -)"
+  dpkg -s openssh-server >/dev/null 2>&1 || DEBIAN_FRONTEND=noninteractive apt-get install -y -qq openssh-server
+  # Le dossier personnel reste /srv/naomox (SFTP : on arrive directement sur roms/, media/…).
+  # Seul le shell change : usermod -d est refusé tant que le service tourne sous ce compte.
+  usermod -s /bin/bash "$USER_NAME"
+  echo "$USER_NAME:$NAOMOX_SSH_PASSWORD" | chpasswd
+fi
 
 log "Service systemd"
 changed=0

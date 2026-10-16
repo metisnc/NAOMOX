@@ -6,7 +6,8 @@ Lance les jeux **Sega Naomi / Naomi 2 / Atomiswave / Chihiro / Triforce** sur le
 | | |
 |---|---|
 | **Interface web** | `http://<nom-du-conteneur>.local` ou `http://<IP-du-conteneur>` |
-| **Login conteneur** (console Proxmox / SSH) | `root` / mot de passe défini à la création (`naomox` par défaut avec `pct-create.sh`) |
+| **Login conteneur** (console Proxmox) | `root` / mot de passe défini à la création (`naomox` par défaut avec `pct-create.sh`) |
+| **SSH / SFTP** | `naomox` / même mot de passe que root par défaut — on arrive dans `/srv/naomox` (ROMs dans `roms/`) ; administration : `su -` |
 | Mot de passe de l'interface web | aucun par défaut (activable dans `/etc/naomox/config.yaml`) |
 
 L'IP du conteneur : onglet **Réseau** de ce CT, ou `hostname -I` dans la console.

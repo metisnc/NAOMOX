@@ -31,7 +31,8 @@ bash -c "$(curl -fsSL https://raw.githubusercontent.com/metisnc/NAOMOX/main/depl
 
 Le script crée un conteneur LXC Debian (ID libre, IP en DHCP, 8 Go système + 64 Go de
 données), y installe la dernière version publiée et affiche l'adresse de l'interface :
-**http://naomox.local**. Login console du conteneur : `root` / `naomox`. Tout est rappelé dans
+**http://naomox.local**. Login console du conteneur : `root` / `naomox` ; SSH/SFTP (copie des ROMs) : `naomox` / `naomox`
+(changer avec `passwd`). Tout est rappelé dans
 l'onglet **Notes** du conteneur.
 
 Options : à placer devant la commande, par exemple
@@ -46,6 +47,7 @@ Options : à placer devant la commande, par exemple
 | `STORAGE` | premier stockage CT actif | stockage des disques |
 | `ROOTFS_GB` / `DATA_GB` | `8` / `64` | tailles des disques (ROMs dans les données) |
 | `ROOT_PASSWORD` | `naomox` | mot de passe root du conteneur |
+| `SSH_PASSWORD` | = `ROOT_PASSWORD` | mot de passe SSH/SFTP du compte `naomox` (vide = pas d'accès SSH) |
 | `NAOMOX_VERSION` | `latest` | version publiée à installer (`v0.1.0`…) |
 
 > Le conteneur a besoin d'un accès Internet pendant l'installation (paquets Debian et Python).
