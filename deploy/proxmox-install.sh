@@ -21,6 +21,8 @@
 #   ROOT_PASSWORD=naomox                   mot de passe root du conteneur
 #   SSH_PASSWORD=…    mot de passe SSH/SFTP du compte naomox (défaut : celui de root ; vide = pas d'accès SSH)
 #   NAOMOX_VERSION=latest | v0.2.0         version à installer
+#   CONTENT=…         pack de contenu à importer (ROMs, médias, firmwares, liste des jeux) :
+#                     fichier .tar ou dossier sur l'hôte (ex. NAS monté), ou URL http(s)
 #   GITHUB_TOKEN=…    jeton GitHub (lecture), seulement pour un dépôt privé ou une fourche
 #   NAOMOX_YES=1      aucune question (installation automatisée)
 #   NAOMOX_DRY_RUN=1  affiche ce qui serait fait, sans rien créer
@@ -50,6 +52,7 @@ CORES="${CORES:-2}"
 MEMORY="${MEMORY:-1024}"
 ROOT_PASSWORD="${ROOT_PASSWORD:-naomox}"
 SSH_PASSWORD="${SSH_PASSWORD-$ROOT_PASSWORD}"
+CONTENT="${CONTENT:-}"
 STORAGE="${STORAGE:-$(pvesm status -content rootdir 2>/dev/null | awk 'NR>1 && $3=="active" {print $1; exit}')}"
 
 # --- Assistant interactif (whiptail) ------------------------------------------------------------
@@ -143,6 +146,7 @@ wizard_custom() {
   free="$(pvesm status -storage "$STORAGE" 2>/dev/null | awk 'NR==2 {printf "%.0f", $6/1048576}')"
   DATA_GB="$(ask_valid "Stockage" "Disque des données en Go (ROMs, vidéos…, ${free:-?} Go libres) :" "$DATA_GB" '^[0-9]+$' "Un nombre de Go.")"
 
+  CONTENT="$(ask "Contenu" "Pack de contenu à importer (ROMs, vidéos…) — fichier .tar ou dossier sur l'hôte, ou URL (vide = aucun) :" "$CONTENT")"
   CORES="$(ask_valid "Ressources" "Nombre de vCPU :" "$CORES" '^[1-9][0-9]?$' "Un nombre entre 1 et 99.")"
   MEMORY="$(ask_valid "Ressources" "Mémoire (Mo) :" "$MEMORY" '^[0-9]{3,6}$' "Un nombre de Mo (512 minimum conseillé).")"
 }
@@ -159,6 +163,17 @@ pct status "$CTID" >/dev/null 2>&1 && die "le conteneur $CTID existe déjà (CTI
 [ -n "$STORAGE" ] || die "aucun stockage actif n'accepte les conteneurs (STORAGE=…)"
 ip link show "$BRIDGE" >/dev/null 2>&1 || die "bridge $BRIDGE introuvable (BRIDGE=…)"
 if [ "$IP" != dhcp ] && [ -z "$GW" ]; then die "IP fixe : préciser aussi GW=…"; fi
+case "$CONTENT" in
+  ""|http://*|https://*) ;;
+  *)
+    [ -e "$CONTENT" ] || die "pack de contenu introuvable sur l'hôte : $CONTENT"
+    # Disque de données assez grand pour le pack (+50 % de marge pour de futurs ajouts).
+    content_gb="$(du -sBG "$CONTENT" 2>/dev/null | awk '{print int($1)+1}')"
+    if [ -n "$content_gb" ] && [ $((content_gb * 3 / 2)) -gt "$DATA_GB" ]; then
+      DATA_GB=$((content_gb * 3 / 2))
+      msg "Pack de ${content_gb} Go : disque de données porté à ${DATA_GB} Go"
+    fi ;;
+esac
 
 # --- Version à installer --------------------------------------------------------------------
 auth=()
@@ -196,6 +211,7 @@ cat <<EOF
   Disques    : $STORAGE — système ${ROOTFS_GB} Go + données ${DATA_GB} Go (/srv/naomox)
   Réseau     : $BRIDGE${VLAN:+ (VLAN $VLAN)}, IP $IP${GW:+, passerelle $GW}
   SSH/SFTP   : $ssh_label
+  Contenu    : ${CONTENT:-aucun}
   Template   : $TEMPLATE
 
 EOF
@@ -210,6 +226,7 @@ Conteneur : $CTID ($HOSTNAME_CT), $CORES vCPU, $MEMORY Mo
 Disques   : $STORAGE — système $ROOTFS_GB Go + données $DATA_GB Go
 Réseau    : $BRIDGE${VLAN:+ (VLAN $VLAN)}, IP $IP${GW:+, passerelle $GW}
 SSH/SFTP  : $ssh_label
+Contenu   : ${CONTENT:-aucun}
 
 Créer le conteneur et installer NAOMOX ?" 17 74 || cancelled
   clear
@@ -260,6 +277,18 @@ pct exec "$CTID" -- env NAOMOX_SSH_PASSWORD="$SSH_PASSWORD" bash -c '
   tar -xzf /root/naomox.tar.gz -C /root/naomox-src && rm -f /root/naomox.tar.gz
   bash /root/naomox-src/deploy/install.sh
 '
+
+if [ -n "$CONTENT" ]; then
+  msg "Import du contenu : $CONTENT (peut être long : plusieurs Go)"
+  case "$CONTENT" in
+    http://*|https://*) pct exec "$CTID" -- naomox-content import "$CONTENT" ;;
+    *) if [ -d "$CONTENT" ]; then
+         tar -C "$CONTENT" -cf - . | pct exec "$CTID" -- naomox-content import -
+       else
+         pct exec "$CTID" -- naomox-content import - < "$CONTENT"
+       fi ;;
+  esac
+fi
 
 addr="$(pct exec "$CTID" -- hostname -I | awk '{print $1}')"
 echo

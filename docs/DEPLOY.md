@@ -123,7 +123,11 @@ Trois façons de les déposer :
 - **Depuis une carte SD WiPi** : `/boot/roms` → `roms/`, `/boot/config/images|videos` →
   `media/`, `/boot/config/firmware` → `firmware/`.
 
-Ensuite : Réglages → Jeux → **Scanner**. Les ROMs inconnues de la liste sont ajoutées, avec
+Ensuite : Réglages → Jeux → **Scanner**.
+
+**Depuis un autre NAOMOX** : utiliser le **pack de contenu** (`naomox-content export` / `import`,
+voir le README) — un seul fichier `.tar` à garder sur un NAS, réimportable dans n'importe quelle
+installation, ou passé directement à l'installateur (`CONTENT=…`). Les ROMs inconnues de la liste sont ajoutées, avec
 le système deviné d'après leur préfixe (`n1-`, `n2-`, `aw-`, `ch-`, `tf-`).
 
 La liste des jeux est initialisée avec le `romsinfo.csv` de WiPi 6.1. Elle s'exporte et

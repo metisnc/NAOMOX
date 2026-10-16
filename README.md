@@ -61,6 +61,7 @@ NAOMOX_YES=1 IP=192.168.1.50/24 GW=192.168.1.1 DATA_GB=128   bash -c "$(curl -fs
 | `ROOT_PASSWORD` | `naomox` | mot de passe root du conteneur |
 | `SSH_PASSWORD` | = `ROOT_PASSWORD` | mot de passe SSH/SFTP du compte `naomox` (vide = pas d'accès SSH) |
 | `NAOMOX_VERSION` | `latest` | version publiée à installer (`v0.1.0`…) |
+| `CONTENT` | — | pack de contenu à importer (voir plus bas) |
 | `NAOMOX_YES` | — | `1` = aucune question (automatisation) |
 | `NAOMOX_DRY_RUN` | — | `1` = simulation, rien n'est créé |
 
@@ -68,6 +69,30 @@ NAOMOX_YES=1 IP=192.168.1.50/24 GW=192.168.1.1 DATA_GB=128   bash -c "$(curl -fs
 
 Ensuite : déposer les ROMs dans `/srv/naomox/roms` (ou Réglages → Fichiers), Réglages → Jeux →
 **Scanner**, puis Bornes → **Rechercher**.
+
+## Réutiliser ses ROMs et vidéos : le pack de contenu
+
+Pour installer un nouveau NAOMOX avec les ROMs, jaquettes, vidéos, logos, firmwares et la liste
+des jeux (favoris, jeux désactivés) d'une installation existante — sans backup/restore du
+conteneur :
+
+```sh
+# 1. Sur l'hôte Proxmox : créer le pack depuis un NAOMOX existant (ici le CT 120), vers un NAS monté
+pct exec 120 -- naomox-content export - > /mnt/pve/mon-nas/naomox-content.tar
+
+# 2. Nouvelle installation avec ce pack (ou réponse à la question « Contenu » de l'assistant)
+CONTENT=/mnt/pve/mon-nas/naomox-content.tar bash -c "$(curl -fsSL https://raw.githubusercontent.com/metisnc/NAOMOX/main/deploy/proxmox-install.sh)"
+
+# Ou dans un NAOMOX déjà installé
+pct exec 121 -- naomox-content import - < /mnt/pve/mon-nas/naomox-content.tar
+```
+
+`CONTENT` accepte un fichier `.tar`, un dossier (contenant `roms/`, `media/`, `firmware/`) ou une URL
+`http(s)`. L'import ajoute sans écraser, remet les droits et relance la détection des jeux ; le disque
+de données est agrandi automatiquement si le pack est plus gros. Les bornes ne sont pas dans le pack.
+
+> ⚠ Les ROMs, vidéos et firmwares Sega sont protégés par le droit d'auteur : gardez le pack sur
+> votre propre stockage (NAS, partage privé), ne le publiez jamais.
 
 ## Développement
 

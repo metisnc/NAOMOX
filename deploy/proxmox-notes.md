@@ -25,6 +25,10 @@ Le nom `.local` se change dans l'interface : **Réglages → Réseau → Nom ré
 - Configuration : `/etc/naomox/config.yaml` · utilisateur système `naomox` (sans sudo)
 - Port web **80** · NetDIMM en **TCP 10703** · nom réseau annoncé en mDNS (avahi)
 
+## Pack de contenu (ROMs, vidéos, liste des jeux)
+- Exporter depuis l'hôte : `pct exec <ID> -- naomox-content export - > /chemin/naomox-content.tar`
+- Importer : `pct exec <ID> -- naomox-content import - < /chemin/naomox-content.tar`
+
 ## Premiers pas
 1. Déposer les ROMs dans `/srv/naomox/roms` (ou Réglages → Fichiers), puis Réglages → Jeux → **Scanner**.
 2. Sur la borne, menu de test → NETWORK SETTING : IP fixe hors plage DHCP, masque 255.255.255.0.

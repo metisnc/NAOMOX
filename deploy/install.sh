@@ -79,6 +79,8 @@ log "Environnement Python ($APP_DIR/venv)"
 "$APP_DIR/venv/bin/pip" install -q --upgrade "$APP_DIR/app"
 chmod -R a+rX "$APP_DIR"
 
+install -m 0755 "$REPO/deploy/content-pack.sh" /usr/local/bin/naomox-content
+
 log "Configuration"
 if [ ! -f "$CONF_DIR/config.yaml" ]; then
   install -m 0640 -g "$USER_NAME" "$REPO/deploy/config.example.yaml" "$CONF_DIR/config.yaml"
