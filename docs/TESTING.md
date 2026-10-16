@@ -52,7 +52,7 @@ Il lui faut une instance **jetable**. Pour la préparer dans le CT, sans toucher
 principale :
 
 ```sh
-ssh root@10.185.10.230 '
+ssh root@192.168.1.230 '
 mkdir -p /tmp/naomox-e2e/data/roms
 head -c 3000000 /dev/urandom | gzip -1 > /tmp/naomox-e2e/data/roms/n1-naomox_e2e_test.bin.gz
 cat > /tmp/naomox-e2e/config.yaml <<EOF
@@ -65,10 +65,10 @@ chown -R naomox:naomox /tmp/naomox-e2e
 systemd-run --unit naomox-e2e-mock --uid naomox /opt/naomox/venv/bin/naomox mock --port 10799 --firmware 4.03
 systemd-run --unit naomox-e2e --uid naomox -E NAOMOX_CONFIG=/tmp/naomox-e2e/config.yaml /opt/naomox/venv/bin/naomox serve'
 
-cd frontend && NAOMOX_E2E_URL=http://10.185.10.230:8081 npm run e2e
+cd frontend && NAOMOX_E2E_URL=http://naomox.local:8081 npm run e2e
 # Captures : frontend/e2e/.results/screens/
 
-ssh root@10.185.10.230 'systemctl stop naomox-e2e naomox-e2e-mock; rm -rf /tmp/naomox-e2e'
+ssh root@192.168.1.230 'systemctl stop naomox-e2e naomox-e2e-mock; rm -rf /tmp/naomox-e2e'
 ```
 
 ### Dernier résultat (2026-10-16)
@@ -80,7 +80,7 @@ ssh root@10.185.10.230 'systemctl stop naomox-e2e naomox-e2e-mock; rm -rf /tmp/n
 | svelte-check | 0 erreur, 0 avertissement |
 | Playwright | 1 passed (une borne : lancement direct) ; vérifié aussi à la main avec deux bornes virtuelles (choix proposé) |
 | Déploiement | `install.sh` idempotent ; service `naomox` actif ; `http://naomox.local` résolu depuis Windows |
-| Matériel réel | NetDIMM `10.185.10.5` (firmware 4.01) joignable, info lue — **lancement réel encore à tester** |
+| Matériel réel | NetDIMM `192.168.1.50` (firmware 4.01) joignable, info lue — **lancement réel encore à tester** |
 
 ---
 

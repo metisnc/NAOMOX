@@ -6,11 +6,11 @@ Ce document se lit avec [AUDIT.md](AUDIT.md). Toutes les décisions ci-dessous s
 ## 1. Vue d'ensemble
 
 ```
- Téléphone / tablette            LAN 10.185.10.0/24            NetDIMM (IP fixes)
+ Téléphone / tablette            LAN 192.168.1.0/24            NetDIMM (IP fixes)
           │ HTTP :80                    │                        │ TCP 10703
           ▼                             ▼                        ▼
-┌──────────────────── LXC 10230 « naomox » (Debian 13) ───────────────────┐
-│ eth0 (vmbr0, LAN, 10.185.10.230/24) — interface web ET bornes            │
+┌──────────────────── LXC 120 « naomox » (Debian 13) ───────────────────┐
+│ eth0 (vmbr0, LAN, 192.168.1.230/24) — interface web ET bornes            │
 │                                                                          │
 │  naomox (systemd, utilisateur « naomox », aucun sudo)           │
 │   ├─ FastAPI : REST /api/v1/* + SSE /api/v1/events + frontend statique   │
@@ -35,12 +35,12 @@ Ce document se lit avec [AUDIT.md](AUDIT.md). Toutes les décisions ci-dessous s
 | Isolation | bonne (namespaces utilisateur) | meilleure |
 | Sauvegarde | `vzdump` / snapshots | idem |
 
-**Décision : LXC non privilégié, CT 10230 `naomox`.** Les fonctions USB et série sont
+**Décision : LXC non privilégié, CT 120 `naomox`.** Les fonctions USB et série sont
 abandonnées, donc aucun passthrough n'est requis et le mode privilégié devient inutile.
 
 **Debian 13 (trixie, Python 3.13)** plutôt que 12. C'est le seul template déjà présent sur
 l'hôte, ce qui évite d'y télécharger quoi que ce soit (règle : on ne touche à rien d'autre que
-le CT 10230). `deploy/install.sh` supporte Debian 12 et 13, en LXC comme en VM.
+le CT 120). `deploy/install.sh` supporte Debian 12 et 13, en LXC comme en VM.
 
 Dimensionnement : 1 vCPU, 512 Mo de RAM, rootfs de 8 Go, plus un **point de montage `mp0`
 de 64 Go** pour `/srv/naomox`. Il contient les ROMs (24 Go aujourd'hui) et les médias (1,6 Go).
@@ -53,8 +53,8 @@ Les ROMs restent **dans le conteneur**, comme demandé. `mp0` reste un volume Pr
 ### 3.1 Topologie (décision : LAN unique)
 
 - Les bornes sont branchées **sur le LAN principal**, le même que celui de l'interface web
-  (`vmbr0`, `10.185.10.0/24`, passerelle `10.185.10.254`).
-- Le conteneur a une seule interface, `eth0`, en `10.185.10.230/24`.
+  (`vmbr0`, `192.168.1.0/24`, passerelle `192.168.1.1`).
+- Le conteneur a une seule interface, `eth0`, en `192.168.1.230/24`.
 - **NAOMOX ne lance aucun serveur DHCP.** Les NetDIMM sont en IP fixe, réglée dans le menu de
   test de la borne : *NETWORK SETTING*, avec l'IP, le masque et la passerelle.
 - **À prévoir côté LAN** : choisir pour les NetDIMM des IP **hors de la plage DHCP** de ta box
@@ -66,8 +66,8 @@ Les ROMs restent **dans le conteneur**, comme demandé. `mp0` reste un volume Pr
 
 | Élément | Défaut | Où le modifier |
 |---|---|---|
-| IP de NAOMOX | `10.185.10.230/24` | `pct set 10230 -net0 …` (documenté dans DEPLOY.md) |
-| Sous-réseau scanné par la découverte | `10.185.10.0/24` | `config.yaml` → `network.cabinet_subnet` ou interface Réglages |
+| IP de NAOMOX | `192.168.1.230/24` | `pct set 120 -net0 …` (documenté dans DEPLOY.md) |
+| Sous-réseau scanné par la découverte | `192.168.1.0/24` | `config.yaml` → `network.cabinet_subnet` ou interface Réglages |
 | NetDIMM | libre, IP fixe hors plage DHCP (l'image d'origine utilisait `10.0.0.2`) | interface web → Bornes (`state/cabinets.yaml`) |
 | Port NetDIMM | `10703` | `config.yaml` → `netdimm.port` (utile pour le mock) |
 
@@ -108,7 +108,7 @@ auth:
   enabled: false          # true → mot de passe unique, cookie de session
   password_hash: ""       # généré par `naomox set-password`
 network:
-  cabinet_subnet: 10.185.10.0/24
+  cabinet_subnet: 192.168.1.0/24
 netdimm:
   port: 10703
   connect_timeout: 5
@@ -270,7 +270,7 @@ legacy/ (ou suppression) # ancien code Pi, retiré dans une phase dédiée
 2. Données en fichiers YAML et CSV, sans SQLite (§4).
 3. Bornes sur le **LAN principal**, le même que l'interface web. Pas de bridge dédié (§3.1).
 4. Authentification désactivée par défaut, activable (§7).
-5. Application dans un dépôt dédié **`metisnc/NAOMOX`**. Le fork `metisnc/WiPiNetbooter-NG` garde son
-   nom (utilisé par un autre workspace) et reste la référence du code WiPi d'origine.
-6. Déploiement : **CT 10230** sur le Proxmox `10.185.10.200`, IP `10.185.10.230`. On ne touche
-   à **rien d'autre** sur cet hôte de production.
+5. Application dans un dépôt dédié **`metisnc/NAOMOX`** ; le fork `metisnc/WiPiNetbooter-NG` reste la
+   référence du code WiPi d'origine.
+6. Déploiement : un conteneur LXC dédié (exemple : CT 120, IP `192.168.1.230`), installé par
+   `deploy/proxmox-install.sh` sans rien modifier d'autre sur l'hôte.

@@ -1,10 +1,12 @@
 # Déploiement de NAOMOX sur Proxmox
 
 Ce guide déploie NAOMOX dans un conteneur LXC Debian (12 ou 13), puis branche les bornes.
-Valeurs de référence : CT **10230**, IP **10.185.10.230/24**, hôte Proxmox `10.185.10.200`,
-LAN `10.185.10.0/24` (passerelle et DNS `10.185.10.254`).
 
-> L'hôte Proxmox de référence est en **production** : ne créer ni modifier que le CT de NAOMOX.
+> **Le plus simple** : la commande unique du [README](../README.md#installation-sur-proxmox-en-une-commande)
+> fait tout (conteneur + installation). Ce guide détaille les étapes et le dépannage.
+
+Valeurs d'exemple utilisées ci-dessous : CT **120**, IP **192.168.1.230/24**, hôte Proxmox
+`192.168.1.10`, LAN `192.168.1.0/24` (passerelle et DNS `192.168.1.1`).
 
 ## 1. Prérequis
 
@@ -20,7 +22,7 @@ LAN `10.185.10.0/24` (passerelle et DNS `10.185.10.254`).
 Depuis l'hôte Proxmox, en root : copier `deploy/pct-create.sh`, puis le lancer.
 
 ```sh
-CTID=10230 IP=10.185.10.230/24 GW=10.185.10.254 DNS=10.185.10.254 \
+CTID=120 IP=192.168.1.230/24 GW=192.168.1.1 DNS=192.168.1.1 \
 STORAGE=local-zfs DATA_GB=64 SSH_KEY=/root/naomox.pub ./pct-create.sh
 ```
 
@@ -31,14 +33,14 @@ Le script renseigne aussi les **notes Proxmox** du CT (onglet Notes) à partir d
 Le script exécute l'équivalent de :
 
 ```sh
-pct create 10230 local:vztmpl/debian-13-standard_13.1-2_amd64.tar.zst \
+pct create 120 local:vztmpl/debian-13-standard_13.1-2_amd64.tar.zst \
   --hostname naomox --unprivileged 1 --features nesting=1 \
   --cores 2 --memory 1024 --swap 512 \
   --rootfs local-zfs:8 \
   --mp0 local-zfs:64,mp=/srv/naomox,backup=1 \
-  --net0 name=eth0,bridge=vmbr0,ip=10.185.10.230/24,gw=10.185.10.254,firewall=0 \
-  --nameserver 10.185.10.254 --onboot 1 --tags naomox
-pct start 10230
+  --net0 name=eth0,bridge=vmbr0,ip=192.168.1.230/24,gw=192.168.1.1,firewall=0 \
+  --nameserver 192.168.1.1 --onboot 1 --tags naomox
+pct start 120
 ```
 
 À savoir :
@@ -49,7 +51,7 @@ pct start 10230
 - `mp0` est un volume séparé pour les ROMs, médias et l'état. Il est inclus dans les
   sauvegardes `vzdump` (`backup=1`).
 - Bornes sur un VLAN : ajouter `,tag=<vlan>` à `--net0` (variable `VLAN=` du script).
-- Changer l'IP plus tard : `pct set 10230 -net0 name=eth0,bridge=vmbr0,ip=<IP>/24,gw=<GW>`.
+- Changer l'IP plus tard : `pct set 120 -net0 name=eth0,bridge=vmbr0,ip=<IP>/24,gw=<GW>`.
 
 > **Git Bash sous Windows** : si vous pilotez l'API Proxmox (`curl`) depuis Git Bash, exportez
 > `MSYS_NO_PATHCONV=1`. Sinon `mp=/srv/naomox` est réécrit en `C:/Program Files/Git/srv/naomox`.
@@ -60,7 +62,7 @@ pct start 10230
 
 ```sh
 git clone https://github.com/metisnc/NAOMOX.git && cd NAOMOX
-NAOMOX_HOST=root@10.185.10.230 NAOMOX_KEY=~/.ssh/naomox_ed25519 deploy/push.sh
+NAOMOX_HOST=root@192.168.1.230 NAOMOX_KEY=~/.ssh/naomox_ed25519 deploy/push.sh
 ```
 
 `push.sh` enchaîne trois étapes :
@@ -94,12 +96,12 @@ Le script est **idempotent** : on peut le relancer pour mettre à jour.
 | Service | `naomox.service` (port 80 par capacité, sandbox systemd), activé au démarrage |
 | Vérification | `GET /api/v1/health` |
 
-L'interface est alors disponible sur **http://10.185.10.230/** ou **http://naomox.local/**
+L'interface est alors disponible sur **http://192.168.1.230/** ou **http://naomox.local/**
 (annonce mDNS / Bonjour par `avahi-daemon`, reconnue par iPhone, macOS, Windows 10/11 et Android récents ;
 le nom vient du hostname du CT).
 
 Pour que le nom court **http://naomox/** fonctionne sur tous les appareils, ajouter dans le DNS du
-réseau (box, routeur UniFi, Pi-hole, Technitium…) un enregistrement **A** `naomox` → `10.185.10.230`. Sur téléphone, « Ajouter à
+réseau (box, routeur UniFi, Pi-hole, Technitium…) un enregistrement **A** `naomox` → `192.168.1.230`. Sur téléphone, « Ajouter à
 l'écran d'accueil » installe l'application (PWA).
 
 ## 4. Ajouter les ROMs, médias et firmwares
@@ -115,8 +117,8 @@ Trois façons de les déposer :
 - **Interface** : Réglages → Fichiers → Ajouter des fichiers.
 - **scp / rsync** depuis le poste :
   ```sh
-  rsync -a --info=progress2 roms/ root@10.185.10.230:/srv/naomox/roms/
-  ssh root@10.185.10.230 chown -R naomox:naomox /srv/naomox
+  rsync -a --info=progress2 roms/ root@192.168.1.230:/srv/naomox/roms/
+  ssh root@192.168.1.230 chown -R naomox:naomox /srv/naomox
   ```
 - **Depuis une carte SD WiPi** : `/boot/roms` → `roms/`, `/boot/config/images|videos` →
   `media/`, `/boot/config/firmware` → `firmware/`.
@@ -137,9 +139,9 @@ Entrer dans le menu de test → **NETWORK SETTING** (NetDIMM) :
 |---|---|
 | NETWORK TYPE | `ETHER` |
 | REMOTE | `DISABLE` |
-| IP ADDRESS | une IP fixe du LAN **hors plage DHCP**, par ex. `10.185.10.50` |
+| IP ADDRESS | une IP fixe du LAN **hors plage DHCP**, par ex. `192.168.1.50` |
 | SUBNET MASK | `255.255.255.0` |
-| GATEWAY | `10.185.10.254` (facultatif) |
+| GATEWAY | `192.168.1.1` (facultatif) |
 
 Selon la carte :
 
@@ -175,7 +177,7 @@ Pour lancer un jeu, ouvrir l'onglet **Jeux**, choisir le jeu, puis **Lancer**.
 ### Authentification
 
 ```sh
-ssh root@10.185.10.230
+ssh root@192.168.1.230
 /opt/naomox/venv/bin/naomox hash-password        # saisir le mot de passe, copier le hash
 nano /etc/naomox/config.yaml                     # auth.enabled: true, auth.password_hash: "scrypt$…"
 systemctl restart naomox
@@ -206,7 +208,7 @@ Le conteneur utilise le réseau `host` et écoute sur le port 8080.
 | Statut | `systemctl status naomox` |
 | Redémarrer | `systemctl restart naomox` |
 | Mise à jour | relancer `deploy/push.sh` depuis le poste |
-| Sauvegarde | `vzdump 10230` (inclut `/srv/naomox`) ; l'état seul tient dans `/srv/naomox/state/` |
+| Sauvegarde | `vzdump 120` (inclut `/srv/naomox`) ; l'état seul tient dans `/srv/naomox/state/` |
 | Désinstaller | `bash deploy/install.sh --uninstall` (données conservées) |
 
 Fichiers d'état, tous modifiables à la main service arrêté :
@@ -225,8 +227,8 @@ Fichiers d'état, tous modifiables à la main service arrêté :
 
 1. **La borne est-elle allumée**, et l'écran affiche-t-il l'attente réseau ou un jeu ? Si
    l'écran reste dans le menu de test, en sortir.
-2. **Ping** depuis le CT : `ping 10.185.10.50`. Faire aussi un test de port :
-   `timeout 2 bash -c '</dev/tcp/10.185.10.50/10703' && echo ouvert`.
+2. **Ping** depuis le CT : `ping 192.168.1.50`. Faire aussi un test de port :
+   `timeout 2 bash -c '</dev/tcp/192.168.1.50/10703' && echo ouvert`.
 3. **Câble et switch** : les LED du port NetDIMM doivent être allumées.
 4. **`refused`** veut dire que l'IP répond mais que le port est fermé. Causes possibles : un
    autre appareil a cette IP (conflit), ou une Triforce/Chihiro n'est pas en mode satellite.
@@ -238,7 +240,7 @@ Fichiers d'état, tous modifiables à la main service arrêté :
 - L'IP réglée dans le menu **NETWORK SETTING** doit correspondre exactement à celle de la fiche
   de la borne dans NAOMOX.
 - Choisir une IP **hors plage DHCP** de la box ou du routeur, sinon un autre appareil peut la
-  prendre. Pour vérifier : `ip neigh | grep 10.185.10.50`, l'adresse MAC doit être celle de
+  prendre. Pour vérifier : `ip neigh | grep 192.168.1.50`, l'adresse MAC doit être celle de
   la NetDIMM.
 - **Rechercher** dans l'onglet Bornes liste toutes les IP qui répondent sur le port 10703.
 
@@ -277,7 +279,7 @@ Fichiers d'état, tous modifiables à la main service arrêté :
 - `journalctl -u naomox -n 50`.
 - **Port 80 déjà pris** : `ss -ltnp | grep :80`. Changer `http.port` dans la config.
 - **Erreur de config** : la validation pydantic indique la clé en cause.
-- **Sandbox systemd refusée** (CT sans `nesting=1`) : `pct set 10230 -features nesting=1`, puis
+- **Sandbox systemd refusée** (CT sans `nesting=1`) : `pct set 120 -features nesting=1`, puis
   redémarrer le CT.
 
 ### Le jeu ne démarre pas alors que le transfert est « terminé »

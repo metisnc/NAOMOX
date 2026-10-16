@@ -11,16 +11,8 @@ déployé dans un **conteneur LXC Debian 13 sur Proxmox** et piloté depuis un t
 
 ## Environnement de déploiement
 
-- Proxmox **de production** `10.185.10.200` (PVE 9.2, nœud `pve`). **Seul le CT 10230 nous
-  appartient** : ne jamais créer, modifier, arrêter ni télécharger quoi que ce soit d'autre
-  (pas de template, pas de stockage, pas de bridge).
-- CT **10230** `naomox` : LXC non privilégié, Debian 13 (Python 3.13), `eth0` sur `vmbr0` en
-  `10.185.10.230/24` (passerelle et DNS `10.185.10.254`). rootfs de 8 Go et `mp0` de 64 Go
-  montés sur `/srv/naomox` (`local-zfs`).
-- Accès : `ssh -i ~/.ssh/naomox_ed25519 root@10.185.10.230`. Aucun identifiant n'est stocké
-  dans le dépôt.
-- Git Bash sous Windows : exporter `MSYS_NO_PATHCONV=1` avant tout appel à l'API Proxmox
-  contenant un chemin `/…`, sinon le chemin est réécrit en `C:/Program Files/Git/…`.
+Les informations propres à l'installation de l'auteur (hôte Proxmox, ID et IP du conteneur, accès)
+sont dans **`CLAUDE.local.md`** (non versionné). Ne jamais les recopier dans le dépôt.
 
 ## Arborescence
 
@@ -50,7 +42,7 @@ déployé dans un **conteneur LXC Debian 13 sur Proxmox** et piloté depuis un t
    cycraft). Voir `docs/AUDIT.md` §6.
 3. Interface **entièrement réécrite**, mobile-first, servie par le backend. Plus de PHP, plus de sudo.
 4. Toutes les cartes supportées ; **plan d'adressage modifiable**. Les bornes sont sur le
-   **LAN principal** (`10.185.10.0/24`), comme l'interface web : pas de bridge dédié, et
+   **même LAN** que l'interface web : pas de bridge dédié, et
    **jamais de serveur DHCP**.
 4bis. Frontend Vite + Svelte (TS), compilé à l'avance ; données en YAML et CSV ;
    authentification optionnelle, désactivée par défaut. Nom technique : `naomox` (service,
@@ -74,7 +66,7 @@ déployé dans un **conteneur LXC Debian 13 sur Proxmox** et piloté depuis un t
    - Pas de classification d'âge, pas de « même genre » dans la fiche.
 8. Réseau : `http://naomox.local` (avahi-daemon). Le **nom réseau** est modifiable dans
    Réglages : NAOMOX l'annonce lui-même (`avahi-publish -a`, sans root). Le hostname du CT
-   appartient à Proxmox (`pct set 10230 -hostname …`) et n'est pas modifié par l'interface.
+   appartient à Proxmox (`pct set <CTID> -hostname …`) et n'est pas modifié par l'interface.
 
 ## Règles de travail
 
@@ -92,9 +84,9 @@ déployé dans un **conteneur LXC Debian 13 sur Proxmox** et piloté depuis un t
 tools/dev-sync.sh 'ruff check . && ruff format --check . && pytest -q'   # tests backend dans le CT
 tools/dev-sync.sh 'ruff check --fix . ; ruff format .' && tools/dev-pull.sh  # formater puis rapatrier
 (cd frontend && npm run check && npm run build)                         # frontend
-(cd frontend && NAOMOX_E2E_URL=http://10.185.10.230:8081 npm run e2e)   # e2e UI (instance jetable, cf. TESTING.md)
-deploy/push.sh                                                          # build + déploiement sur le CT 10230
-ssh -i ~/.ssh/naomox_ed25519 root@10.185.10.230 journalctl -u naomox -f
+(cd frontend && NAOMOX_E2E_URL=http://<ct>:8081 npm run e2e)             # e2e UI (instance jetable, cf. TESTING.md)
+NAOMOX_HOST=root@<ct> deploy/push.sh                                    # build + déploiement
+ssh root@<ct> journalctl -u naomox -f
 ```
 
 ## Conventions

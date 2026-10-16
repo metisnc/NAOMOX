@@ -47,3 +47,6 @@ Thumbs.db
 frontend/e2e/.results/
 frontend/test-results/
 frontend/playwright-report/
+
+# Notes Claude propres à l'environnement local
+CLAUDE.local.md
