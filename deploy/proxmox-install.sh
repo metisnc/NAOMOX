@@ -296,4 +296,8 @@ ok "NAOMOX $tag installé dans le conteneur $CTID"
 echo "   Interface : http://$HOSTNAME_CT.local  ou  http://$addr"
 echo "   Console   : root / $ROOT_PASSWORD   (onglet Notes du conteneur pour le reste)"
 if [ -n "$SSH_PASSWORD" ]; then echo "   SSH/SFTP  : ssh naomox@$addr  (mot de passe : $SSH_PASSWORD)"; fi
-echo "   Ensuite   : déposer les ROMs dans /srv/naomox/roms puis Réglages → Jeux → Scanner"
+if [ -n "$CONTENT" ]; then
+  echo "   Contenu   : importé depuis $CONTENT — il reste à déclarer les bornes (onglet Bornes → Rechercher)"
+else
+  echo "   Ensuite   : déposer les ROMs dans /srv/naomox/roms puis Réglages → Jeux → Scanner"
+fi
