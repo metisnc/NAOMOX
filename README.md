@@ -21,6 +21,42 @@ DragonMinded (domaine public).
 | [docs/TESTING.md](docs/TESTING.md) | tests automatisés et checklist sur borne |
 | [docs/AUDIT.md](docs/AUDIT.md) | audit de WiPiNetbooter 6.1.4 |
 
+## Installation sur Proxmox en une commande
+
+Dans le **shell de l'hôte Proxmox** (Datacenter → nœud → Shell), en root :
+
+```sh
+bash -c "$(curl -fsSL https://raw.githubusercontent.com/metisnc/NAOMOX/main/deploy/proxmox-install.sh)"
+```
+
+Le script crée un conteneur LXC Debian (ID libre, IP en DHCP, 8 Go système + 64 Go de
+données), y installe la dernière version publiée et affiche l'adresse de l'interface :
+**http://naomox.local**. Login console du conteneur : `root` / `naomox`. Tout est rappelé dans
+l'onglet **Notes** du conteneur.
+
+Options : à placer devant la commande, par exemple
+`IP=192.168.1.50/24 GW=192.168.1.1 DATA_GB=128 bash -c "$(curl …)"`.
+
+| Variable | Défaut | Rôle |
+|---|---|---|
+| `CTID` | prochain ID libre | numéro du conteneur |
+| `HOSTNAME_CT` | `naomox` | nom du conteneur (→ `http://<nom>.local`) |
+| `IP` / `GW` / `DNS` | `dhcp` | IP fixe `192.168.1.50/24` avec sa passerelle |
+| `BRIDGE` / `VLAN` | `vmbr0` / — | réseau des bornes |
+| `STORAGE` | premier stockage CT actif | stockage des disques |
+| `ROOTFS_GB` / `DATA_GB` | `8` / `64` | tailles des disques (ROMs dans les données) |
+| `ROOT_PASSWORD` | `naomox` | mot de passe root du conteneur |
+| `NAOMOX_VERSION` | `latest` | version publiée à installer (`v0.1.0`…) |
+
+> **Dépôt privé** : tant que le dépôt n'est pas public, ajouter un jeton GitHub en lecture :
+> `export GITHUB_TOKEN=ghp_…`, puis
+> `bash -c "$(curl -fsSL -H "Authorization: Bearer $GITHUB_TOKEN" https://raw.githubusercontent.com/metisnc/NAOMOX/main/deploy/proxmox-install.sh)"`.
+
+Ensuite : déposer les ROMs dans `/srv/naomox/roms` (ou Réglages → Fichiers), Réglages → Jeux →
+**Scanner**, puis Bornes → **Rechercher**.
+
+## Développement
+
 Démarrage rapide depuis un poste de dev, avec un CT Debian déjà créé :
 
 ```sh
