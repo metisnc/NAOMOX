@@ -589,16 +589,6 @@ def create_app(config: Config) -> FastAPI:
         path.unlink()
         return Response(status_code=204)
 
-    @r.get("/media/{kind}/{name}")
-    async def media(kind: Literal["images", "videos", "systems"], name: str) -> FileResponse:
-        try:
-            path = resolve_in(app_state.path_for(kind), name)
-        except ValueError:
-            raise _err(404, "fichier introuvable") from None
-        if not path.exists():
-            raise _err(404, "fichier introuvable")
-        return FileResponse(path, headers={"Cache-Control": "public, max-age=86400"})
-
     @r.get("/media/logos/{name}")
     async def logo(name: str) -> FileResponse:
         try:
@@ -608,6 +598,16 @@ def create_app(config: Config) -> FastAPI:
         if not src.exists():
             raise _err(404, "fichier introuvable")
         path = await asyncio.to_thread(trimmed, src, config.paths.data / "cache" / "logos")
+        return FileResponse(path, headers={"Cache-Control": "public, max-age=86400"})
+
+    @r.get("/media/{kind}/{name}")
+    async def media(kind: Literal["images", "videos", "systems"], name: str) -> FileResponse:
+        try:
+            path = resolve_in(app_state.path_for(kind), name)
+        except ValueError:
+            raise _err(404, "fichier introuvable") from None
+        if not path.exists():
+            raise _err(404, "fichier introuvable")
         return FileResponse(path, headers={"Cache-Control": "public, max-age=86400"})
 
     app.include_router(r)
