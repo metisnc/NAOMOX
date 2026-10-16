@@ -23,6 +23,7 @@ from .config import Config, NetworkConfig
 from .events import EventBroker
 from .jobs import JobManager
 from .logos import trimmed
+from .mdns import MdnsPublisher, normalize_name, system_hostname
 from .storage import (
     Cabinet,
     CabinetIn,
@@ -78,6 +79,11 @@ class Naomox:
         self.jobs = JobManager(config, self.events, self.runtime, self.history)
         self.supervisor = Supervisor(config, self.cabinets, self.games, self.jobs, self.runtime, self.events)
         self.signer = SessionSigner(state / "session.key")
+        self.mdns = MdnsPublisher()
+
+    @property
+    def network_name(self) -> str:
+        return self.settings.load().get("network_name") or system_hostname()
 
     @property
     def subnet(self) -> str:
@@ -129,6 +135,8 @@ class LoginIn(BaseModel):
 
 class SettingsIn(BaseModel):
     cabinet_subnet: str | None = None
+    # Nom réseau annoncé en mDNS (<nom>.local) ; vide = hostname du conteneur.
+    network_name: str | None = None
 
 
 # --------------------------------------------------------------------------- helpers
@@ -216,10 +224,12 @@ def create_app(config: Config) -> FastAPI:
     @contextlib.asynccontextmanager
     async def lifespan(_: FastAPI) -> AsyncIterator[None]:
         app_state.supervisor.start()
+        await app_state.mdns.apply(app_state.network_name)
         log.info("NAOMOX %s prêt — données dans %s", __version__, config.paths.data)
         yield
         await app_state.supervisor.stop()
         await app_state.jobs.shutdown()
+        await app_state.mdns.stop()
 
     app = FastAPI(
         title="NAOMOX",
@@ -302,6 +312,11 @@ def create_app(config: Config) -> FastAPI:
             "timehack_interval": config.timehack.interval_seconds,
             "auth_enabled": config.auth.enabled,
             "version": __version__,
+            "hostname": system_hostname(),
+            "network_name": app_state.network_name,
+            "network_name_ok": app_state.network_name == system_hostname()
+            or (app_state.mdns.active and app_state.mdns.error is None),
+            "network_name_error": app_state.mdns.error,
         }
 
     @r.put("/settings")
@@ -309,7 +324,12 @@ def create_app(config: Config) -> FastAPI:
         values = app_state.settings.load()
         if body.cabinet_subnet is not None:
             values["cabinet_subnet"] = NetworkConfig(cabinet_subnet=body.cabinet_subnet).cabinet_subnet
+        if body.network_name is not None:
+            name = normalize_name(body.network_name) if body.network_name.strip() else system_hostname()
+            values["network_name"] = name
         app_state.settings.save(values)
+        if body.network_name is not None:
+            await app_state.mdns.apply(app_state.network_name)
         return await get_settings()
 
     # -- jeux ---------------------------------------------------------------------------

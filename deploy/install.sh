@@ -43,7 +43,7 @@ case "${VERSION_ID:-}" in 12|13) ;; *) die "Debian 12 ou 13 requis (trouvé : ${
 
 log "Paquets système"
 need=()
-for p in python3 python3-venv ca-certificates curl avahi-daemon; do
+for p in python3 python3-venv ca-certificates curl avahi-daemon avahi-utils; do
   dpkg -s "$p" >/dev/null 2>&1 || need+=("$p")
 done
 if [ ${#need[@]} -gt 0 ]; then

@@ -268,3 +268,15 @@ async def test_startup_removes_leftover_temp_files(tmp_path: Path):
     stale.write_bytes(b"x" * 1000)
     create_app(cfg)
     assert not stale.exists()
+
+
+async def test_network_name_setting(api: httpx.AsyncClient):
+    api.app.state.naomox.mdns.executable = None  # type: ignore[attr-defined]  # pas d'annonce réelle sur le réseau
+    s = (await api.get("/api/v1/settings")).json()
+    assert s["network_name"] == s["hostname"]
+    r = await api.put("/api/v1/settings", json={"network_name": "Borne Salon"}, headers=H)
+    assert r.status_code == 200 and r.json()["network_name"] == "borne-salon"
+    r = await api.put("/api/v1/settings", json={"network_name": "-bad-"}, headers=H)
+    assert r.status_code == 400
+    r = await api.put("/api/v1/settings", json={"network_name": ""}, headers=H)
+    assert r.json()["network_name"] == r.json()["hostname"]
