@@ -58,6 +58,23 @@ déployé dans un **conteneur LXC Debian 13 sur Proxmox** et piloté depuis un t
 5. ROMs, firmwares et médias stockés **dans le conteneur** (`/srv/naomox`, configurable).
 6. Binaires déjà commités dans l'historique : retirés de l'arbre plus tard, **pas de
    réécriture d'historique** sans accord explicite.
+7. Interface (phase graphique, oct. 2026) :
+   - **Thème néon** repris du launcher WiPiNetbooter-NG (cyan / magenta), **noir par défaut**,
+     blanc en option (`data-theme="light"`, choix mémorisé par appareil).
+   - Couleurs système : Naomi ambre, Naomi 2 rouge, **Atomiswave vert**, **Chihiro blanc**
+     (argent en thème clair), Triforce violet.
+   - Tuiles = grands rectangles arrondis (logo + nom centré), zone de logo identique partout ;
+     les logos de jeux sont **recadrés côté serveur** (`/media/logos/…`, Pillow, cache).
+   - **Logos de systèmes** = marques, hors git, dans `/srv/naomox/media/systems/`
+     (`Sega Naomi.png`, `Sega Chihiro.svg`…) ; crédits dans le README (Chihiro : CC BY-SA 4.0).
+   - Lancement : un seul bouton LANCER ; le serveur choisit la borne s'il n'y en a qu'une en
+     ligne, sinon l'interface propose le choix (réponse 409 `choose`).
+   - **Firmware** : zone repliée + avertissement + version lue + cases + mot `FLASHER` ;
+     le serveur refuse aussi : borne injoignable, même version, retour arrière, 3.x → autre que 4.01.
+   - Pas de classification d'âge, pas de « même genre » dans la fiche.
+8. Réseau : `http://naomox.local` (avahi-daemon). Le **nom réseau** est modifiable dans
+   Réglages : NAOMOX l'annonce lui-même (`avahi-publish -a`, sans root). Le hostname du CT
+   appartient à Proxmox (`pct set 10230 -hostname …`) et n'est pas modifié par l'interface.
 
 ## Règles de travail
 
