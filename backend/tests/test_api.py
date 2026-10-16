@@ -221,3 +221,42 @@ async def test_logo_is_trimmed(api: httpx.AsyncClient):
     assert r.status_code == 200
     w, h = Image.open(BytesIO(r.content)).size
     assert 100 <= w <= 108 and 50 <= h <= 54
+
+
+async def test_firmware_safety_checks(api: httpx.AsyncClient, mock_dimm: MockNetDimm):
+    fw = api.app.state.naomox.config.paths.firmware  # type: ignore[attr-defined]
+    for name in ("FW_Netdimm_401.bin.gz", "FW_Netdimm_402.bin.gz", "FW_Netdimm_403.bin.gz"):
+        make_rom(fw / name, 2000)
+    cab = (await api.post("/api/v1/cabinets", json={"name": "N", "ip": "127.0.0.1"}, headers=H)).json()
+    url = f"/api/v1/cabinets/{cab['id']}/firmware"
+
+    async def flash(version: str) -> httpx.Response:
+        return await api.post(url, json={"version": version, "confirm": True}, headers=H)
+
+    mock_dimm.state.firmware = "4.01"
+    r = await flash("4.01")
+    assert r.status_code == 400 and r.json()["detail"]["error"] == "same_version"
+    mock_dimm.state.firmware = "3.17"
+    r = await flash("4.03")
+    assert r.status_code == 400 and r.json()["detail"]["error"] == "upgrade_path"
+    mock_dimm.state.firmware = "4.03"
+    r = await flash("4.01")
+    assert r.status_code == 400 and r.json()["detail"]["error"] == "downgrade"
+    mock_dimm.state.firmware = "3.17"
+    r = await flash("4.01")
+    assert r.status_code == 202 and "3.17 → 4.01" in r.json()["rom"]
+    await wait_job(api, r.json()["id"])
+
+
+async def test_firmware_refused_when_unreachable(tmp_path: Path):
+    fw_cfg = config(tmp_path, port=1)
+    make_rom(fw_cfg.paths.firmware / "FW_Netdimm_403.bin.gz", 2000)
+    app = create_app(fw_cfg)
+    async with app.router.lifespan_context(app):
+        transport = httpx.ASGITransport(app=app)
+        async with httpx.AsyncClient(transport=transport, base_url="http://test") as c:
+            cab = (await c.post("/api/v1/cabinets", json={"name": "N", "ip": "127.0.0.1"}, headers=H)).json()
+            r = await c.post(
+                f"/api/v1/cabinets/{cab['id']}/firmware", json={"version": "4.03", "confirm": True}, headers=H
+            )
+            assert r.status_code == 504 and r.json()["detail"]["error"] == "unreachable"

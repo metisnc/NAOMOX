@@ -512,7 +512,37 @@ def create_app(config: Config) -> FastAPI:
         path = resolve_in(config.paths.firmware, FIRMWARE_FILES[body.version])
         if not path.exists():
             raise _err(404, f"{path.name} absent de {config.paths.firmware}", error="firmware_missing")
-        return app_state.jobs.submit(cab, "firmware", path, f"Firmware NetDIMM {body.version}").to_dict()
+        # Garde-fous : flasher une NetDIMM est risqué (carte inutilisable si l'opération échoue).
+        try:
+            info = await app_state.supervisor.info(cab)
+        except BusyError as e:
+            raise _err(409, str(e), error="busy") from None
+        except UnreachableError as e:
+            raise _err(
+                504, f"{e} — mise à jour impossible sans lire la version actuelle", error="unreachable"
+            ) from None
+        assert info is not None
+        current = info.firmware_version.value
+        if current == body.version:
+            raise _err(400, f"la NetDIMM est déjà en {current}", error="same_version", current=current)
+        if current.startswith(("1.", "2.", "3.")) and body.version != "4.01":
+            raise _err(
+                400,
+                f"depuis {current}, passer d'abord en 4.01 avant {body.version}",
+                error="upgrade_path",
+                current=current,
+            )
+        if current not in ("UNKNOWN",) and current > body.version:
+            raise _err(
+                400,
+                f"retour en arrière refusé ({current} → {body.version})",
+                error="downgrade",
+                current=current,
+            )
+        log.warning("flash firmware %s → %s demandé pour %s (%s)", current, body.version, cab.name, cab.ip)
+        return app_state.jobs.submit(
+            cab, "firmware", path, f"Firmware NetDIMM {current} → {body.version}"
+        ).to_dict()
 
     @r.post("/cabinets/{cab_id}/diag", status_code=202)
     async def cabinet_diag(cab_id: str) -> dict[str, Any]:
