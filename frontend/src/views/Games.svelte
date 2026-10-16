@@ -222,7 +222,7 @@
   {:else}
     {#each groups as grp (grp.key)}
       <section class="group">
-        {#if groups.length > 1}<h3 class="ghead">{grp.label} <small>{grp.games.length}</small></h3>{/if}
+        {#if groups.length > 1}<h3 class="ghead">{grp.label}</h3>{/if}
         {#if browse.view === 'list'}
           <ul class="list">
             {#each grp.games as g (g.rom)}
@@ -318,7 +318,6 @@
   /* Catégories resserrées. */
   .group { margin-bottom: 0.3rem; }
   .ghead { position: sticky; top: 112px; z-index: 4; margin: 0.35rem 0 0.35rem; padding: 0.25rem 0; background: var(--bg); font-size: 0.95rem; }
-  .ghead small { color: var(--fg-2); font-weight: 500; font-size: 0.78rem; margin-left: 0.3rem; }
   /* Grands rectangles : 1 colonne sur téléphone, 2 à 4 sur tablette et écran large. */
   .grid { display: grid; gap: 0.6rem; grid-template-columns: repeat(auto-fill, minmax(min(100%, 290px), 1fr)); }
 
