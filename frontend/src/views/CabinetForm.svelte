@@ -1,4 +1,5 @@
 <script lang="ts">
+  import FirmwareDanger from '../components/FirmwareDanger.svelte';
   import Sheet from '../components/Sheet.svelte';
   import { api } from '../lib/api';
   import { SYSTEM_SHORT } from '../lib/format';
@@ -28,13 +29,10 @@
 
   let form = $state<CabinetFields>(blank());
   let busy = $state(false);
-  let fwVersion = $state('4.03');
-  let fwConfirm = $state(false);
 
   $effect(() => {
     if (open) {
       form = cabinet ? { ...$state.snapshot(cabinet) } : { ...blank(), ip: prefillIp };
-      fwConfirm = false;
     }
   });
 
@@ -67,15 +65,6 @@
     }
   }
 
-  async function firmware() {
-    if (!cabinet) return;
-    const job = await app.run(() => api.post<Job>(`/cabinets/${cabinet.id}/firmware`, { version: fwVersion, confirm: fwConfirm }));
-    if (job) {
-      app.jobs[job.id] = job;
-      app.toast('info', 'Firmware envoyé : suivez les instructions à l’écran de la borne.', 8000);
-      open = false;
-    }
-  }
 
   async function diag() {
     if (!cabinet) return;
@@ -138,18 +127,7 @@
           <button class="small" onclick={diag}>Lancer</button>
         </div>
       {/if}
-      <div class="stack">
-        <span>Mise à jour du firmware NetDIMM</span>
-        <div class="row">
-          <select bind:value={fwVersion} class="grow">
-            {#each app.systems?.firmware_versions ?? [] as v (v)}<option value={v}>{v}</option>{/each}
-          </select>
-          <button class="small danger" disabled={!fwConfirm} onclick={firmware}>Envoyer</button>
-        </div>
-        <label class="check small"><input type="checkbox" bind:checked={fwConfirm} />
-          Je confirme : la borne va flasher la NetDIMM, ne pas l’éteindre pendant l’opération.
-        </label>
-      </div>
+      <FirmwareDanger cabinet={cabinet} ondone={() => (open = false)} />
     </div>
   {/if}
 </Sheet>
