@@ -57,7 +57,7 @@ id "$USER_NAME" >/dev/null 2>&1 || useradd --system --home-dir "$DATA_DIR" --no-
 log "Répertoires"
 install -d -m 0755 "$APP_DIR" "$CONF_DIR"
 install -d -m 0750 -o "$USER_NAME" -g "$USER_NAME" "$DATA_DIR"
-for d in roms media media/images media/videos firmware homebrew state tmp; do
+for d in roms media media/images media/videos media/systems firmware homebrew state tmp; do
   install -d -m 0750 -o "$USER_NAME" -g "$USER_NAME" "$DATA_DIR/$d"
 done
 

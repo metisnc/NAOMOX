@@ -100,7 +100,16 @@ class Config(BaseModel):
 
     def ensure_dirs(self) -> None:
         p = self.paths
-        for d in (p.roms, p.media / "images", p.media / "videos", p.firmware, p.homebrew, p.state, p.tmp):
+        for d in (
+            p.roms,
+            p.media / "images",
+            p.media / "videos",
+            p.media / "systems",
+            p.firmware,
+            p.homebrew,
+            p.state,
+            p.tmp,
+        ):
             d.mkdir(parents=True, exist_ok=True)
 
 

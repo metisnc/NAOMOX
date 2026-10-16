@@ -42,6 +42,8 @@ FILE_KINDS: dict[str, tuple[str, ...]] = {
     "roms": (".bin.gz", ".bin", ".gz"),
     "images": (".png", ".jpg", ".jpeg", ".webp", ".gif"),
     "videos": (".mp4", ".webm"),
+    # Logos des systèmes (marques Sega / Sammy, non fournis) : « Sega Naomi.png », etc.
+    "systems": (".png", ".svg", ".webp"),
     "firmware": (".bin.gz", ".bin"),
 }
 FIRMWARE_FILES = {
@@ -85,6 +87,7 @@ class Naomox:
             "roms": p.roms,
             "images": p.media / "images",
             "videos": p.media / "videos",
+            "systems": p.media / "systems",
             "firmware": p.firmware,
         }[kind]
 
@@ -179,6 +182,17 @@ def _game_view(
     }
 
 
+def _system_logo(app: Naomox, system: str) -> str | None:
+    base = app.path_for("systems")
+    for ext in FILE_KINDS["systems"]:
+        try:
+            if resolve_in(base, system + ext).exists():
+                return f"{API}/media/systems/{system}{ext}"
+        except ValueError:
+            return None
+    return None
+
+
 def _cab_view(app: Naomox, cab: Cabinet) -> dict[str, Any]:
     return {**cab.model_dump(), "status": app.supervisor.status_dict(cab)}
 
@@ -267,6 +281,7 @@ def create_app(config: Config) -> FastAPI:
             "dimm_types": DIMM_TYPES,
             "compatibility": app_state.compat() or COMPATIBILITY,
             "firmware_versions": list(FIRMWARE_FILES),
+            "logos": {s: _system_logo(app_state, s) for s in SYSTEMS},
         }
 
     @r.get("/settings")
@@ -522,7 +537,9 @@ def create_app(config: Config) -> FastAPI:
         ]
 
     @r.get("/files/{kind}")
-    async def list_files(kind: Literal["roms", "images", "videos", "firmware"]) -> list[dict[str, Any]]:
+    async def list_files(
+        kind: Literal["roms", "images", "videos", "systems", "firmware"],
+    ) -> list[dict[str, Any]]:
         base = app_state.path_for(kind)
         out = []
         for f in sorted(base.iterdir()):
@@ -533,7 +550,7 @@ def create_app(config: Config) -> FastAPI:
 
     @r.post("/files/{kind}", status_code=201)
     async def upload_file(
-        kind: Literal["roms", "images", "videos", "firmware"], file: UploadFile = File(...)
+        kind: Literal["roms", "images", "videos", "systems", "firmware"], file: UploadFile = File(...)
     ) -> dict[str, Any]:
         name = safe_filename(os.path.basename(file.filename or ""))
         if not name.lower().endswith(FILE_KINDS[kind]):
@@ -556,7 +573,9 @@ def create_app(config: Config) -> FastAPI:
         return {"name": name, "size": size}
 
     @r.delete("/files/{kind}/{name}", status_code=204)
-    async def delete_file(kind: Literal["roms", "images", "videos", "firmware"], name: str) -> Response:
+    async def delete_file(
+        kind: Literal["roms", "images", "videos", "systems", "firmware"], name: str
+    ) -> Response:
         path = resolve_in(app_state.path_for(kind), name)
         if not path.exists():
             raise _err(404, "fichier introuvable")
@@ -564,7 +583,7 @@ def create_app(config: Config) -> FastAPI:
         return Response(status_code=204)
 
     @r.get("/media/{kind}/{name}")
-    async def media(kind: Literal["images", "videos"], name: str) -> FileResponse:
+    async def media(kind: Literal["images", "videos", "systems"], name: str) -> FileResponse:
         try:
             path = resolve_in(app_state.path_for(kind), name)
         except ValueError:

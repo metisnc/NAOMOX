@@ -194,3 +194,13 @@ async def test_frontend_cache_headers(tmp_path: Path):
             assert root.status_code == 200 and root.headers["cache-control"] == "no-cache"
             asset = await c.get("/assets/index-abc123.js")
             assert "immutable" in asset.headers["cache-control"]
+
+
+async def test_system_logos(api: httpx.AsyncClient):
+    assert (await api.get("/api/v1/systems")).json()["logos"]["Sega Naomi"] is None
+    png = b"\x89PNG\r\n\x1a\n" + b"\0" * 32
+    r = await api.post("/api/v1/files/systems", files={"file": ("Sega Naomi.png", png)}, headers=H)
+    assert r.status_code == 201
+    logos = (await api.get("/api/v1/systems")).json()["logos"]
+    assert logos["Sega Naomi"] == "/api/v1/media/systems/Sega Naomi.png" and logos["Sega Chihiro"] is None
+    assert (await api.get("/api/v1/media/systems/Sega Naomi.png")).content == png
