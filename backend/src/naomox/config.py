@@ -55,11 +55,14 @@ class AuthConfig(BaseModel):
 
 
 class NetworkConfig(BaseModel):
-    cabinet_subnet: str = "10.185.10.0/24"
+    # Sous-réseau balayé par la découverte ; None = le /24 de l'interface principale.
+    cabinet_subnet: str | None = None
 
     @field_validator("cabinet_subnet")
     @classmethod
-    def _valid_subnet(cls, v: str) -> str:
+    def _valid_subnet(cls, v: str | None) -> str | None:
+        if v in (None, ""):
+            return None
         net = ipaddress.ip_network(v, strict=False)
         if net.num_addresses > 4096:
             raise ValueError("sous-réseau trop large pour la découverte (max /20)")

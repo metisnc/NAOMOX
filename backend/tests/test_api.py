@@ -280,3 +280,12 @@ async def test_network_name_setting(api: httpx.AsyncClient):
     assert r.status_code == 400
     r = await api.put("/api/v1/settings", json={"network_name": ""}, headers=H)
     assert r.json()["network_name"] == r.json()["hostname"]
+
+
+async def test_default_subnet_follows_container_ip(api: httpx.AsyncClient):
+    from naomox.mdns import primary_ipv4
+
+    subnet = (await api.get("/api/v1/settings")).json()["cabinet_subnet"]
+    ip = primary_ipv4()
+    if ip:
+        assert subnet == ".".join(ip.split(".")[:3]) + ".0/24"

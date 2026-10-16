@@ -71,9 +71,9 @@ def test_games_add_unknown_guesses_system(tmp_path: Path):
 
 def test_cabinets_crud_and_validation(tmp_path: Path):
     store = CabinetsStore(tmp_path / "cabinets.yaml")
-    a = store.create(CabinetIn(name="Naomi 1", ip="10.185.10.50", type="Sega Naomi"))
+    a = store.create(CabinetIn(name="Naomi 1", ip="192.168.1.50", type="Sega Naomi"))
     with pytest.raises(ValueError, match="IP"):
-        store.create(CabinetIn(name="Autre", ip="10.185.10.50"))
+        store.create(CabinetIn(name="Autre", ip="192.168.1.50"))
     with pytest.raises(ValueError):
         CabinetIn(name="X", ip="not-an-ip")
     with pytest.raises(ValueError):

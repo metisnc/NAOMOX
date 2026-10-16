@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import asyncio
 import contextlib
+import ipaddress
 import logging
 import os
 import uuid
@@ -23,7 +24,7 @@ from .config import Config, NetworkConfig
 from .events import EventBroker
 from .jobs import JobManager
 from .logos import trimmed
-from .mdns import MdnsPublisher, normalize_name, system_hostname
+from .mdns import MdnsPublisher, normalize_name, primary_ipv4, system_hostname
 from .storage import (
     Cabinet,
     CabinetIn,
@@ -87,7 +88,11 @@ class Naomox:
 
     @property
     def subnet(self) -> str:
-        return self.settings.load().get("cabinet_subnet") or self.config.network.cabinet_subnet
+        configured = self.settings.load().get("cabinet_subnet") or self.config.network.cabinet_subnet
+        if configured:
+            return configured
+        ip = primary_ipv4()
+        return str(ipaddress.ip_network(f"{ip}/24", strict=False)) if ip else "192.168.1.0/24"
 
     def compat(self) -> dict[str, list[str]] | None:
         return self.config.compatibility
