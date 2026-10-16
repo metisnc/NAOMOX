@@ -1,5 +1,6 @@
 <script lang="ts">
   import Sheet from '../components/Sheet.svelte';
+  import SystemLogo from '../components/SystemLogo.svelte';
   import {
     SORTS,
     controlsLabel,
@@ -55,8 +56,8 @@
       <h4>Système</h4>
       <div class="chips">
         {#each systems as f (f.value)}
-          <button class="chip sys" style="--c:{systemColor(f.value)}" class:on={browse.filters.systems.includes(f.value)} onclick={() => browse.toggle('systems', f.value)}>
-            <i></i>{systemShort(f.value)} <small>{f.count}</small>
+          <button class="chip syslogo" style="--c:{systemColor(f.value)}" class:on={browse.filters.systems.includes(f.value)} onclick={() => browse.toggle('systems', f.value)} aria-label={systemShort(f.value)} aria-pressed={browse.filters.systems.includes(f.value)}>
+            <SystemLogo system={f.value} /> <small>{f.count}</small>
           </button>
         {/each}
       </div>
@@ -175,6 +176,8 @@
   .chip.sys.on { background: var(--c); color: #111; }
   .chip.sys.on i { background: #111; }
   .chip .dot { margin-right: 0.15rem; }
+  .chip.syslogo { min-height: 44px; padding: 3px 0.7rem 3px 3px; gap: 0.4rem; }
+  .chip.syslogo.on { background: var(--bg-3); color: var(--fg); border-color: var(--c); box-shadow: 0 0 12px color-mix(in srgb, var(--c) 70%, transparent); }
   .seg { display: inline-flex; border: 1px solid var(--line); border-radius: 10px; overflow: hidden; }
   .seg button { border: 0; border-radius: 0; min-height: 38px; font-size: 0.88rem; background: transparent; }
   .seg button.on { background: var(--accent); color: var(--accent-fg); }

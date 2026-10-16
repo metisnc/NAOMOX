@@ -4,6 +4,7 @@
   import ProgressBar from '../components/ProgressBar.svelte';
   import Marquee from '../components/Marquee.svelte';
   import Sheet from '../components/Sheet.svelte';
+  import SystemLogo from '../components/SystemLogo.svelte';
   import { ApiError, api } from '../lib/api';
   import {
     controlsLabel,
@@ -168,7 +169,7 @@
           </div>
 
           <div class="tags">
-            <span class="tag sys"><i></i>{systemShort(game.system)}</span>
+            <SystemLogo system={game.system} />
             {#if game.genre}<span class="tag">{genreIcon(game.genre)} {genreLabel(game.genre)}</span>{/if}
             {#if rating}<span class="tag" style="--c:{rating.color}"><i class="r"></i>{rating.label}</span>{/if}
           </div>

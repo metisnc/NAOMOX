@@ -2,6 +2,7 @@
   import GameTile from '../components/GameTile.svelte';
   import Marquee from '../components/Marquee.svelte';
   import Shelf from '../components/Shelf.svelte';
+  import SystemLogo from '../components/SystemLogo.svelte';
   import { browse, type View } from '../lib/browse.svelte';
   import {
     SORTS,
@@ -56,7 +57,6 @@
     launchable.filter((g) => g.last_played).sort((a, b) => (b.last_played ?? 0) - (a.last_played ?? 0)).slice(0, 12),
   );
   const favourites = $derived(launchable.filter((g) => g.favourite).sort((a, b) => a.name.localeCompare(b.name)));
-  const mostPlayed = $derived(launchable.filter((g) => g.plays > 1).sort((a, b) => b.plays - a.plays).slice(0, 12));
   const genreShelves = $derived(
     facet(launchable, (g) => g.genre).map((f) => ({
       genre: f.value,
@@ -135,8 +135,15 @@
   <div class="quick">
     {#each Object.keys(SYSTEMS) as s (s)}
       {#if app.games.some((g) => g.system === s && g.present)}
-        <button class="chip sys" style="--c:{systemColor(s)}" class:on={browse.filters.systems.includes(s)} onclick={() => browse.toggle('systems', s)}>
-          <i></i>{systemShort(s)}
+        <button
+          class="syschip"
+          style="--c:{systemColor(s)}"
+          class:on={browse.filters.systems.includes(s)}
+          onclick={() => browse.toggle('systems', s)}
+          aria-label={systemShort(s)}
+          aria-pressed={browse.filters.systems.includes(s)}
+        >
+          <SystemLogo system={s} />
         </button>
       {/if}
     {/each}
@@ -169,11 +176,6 @@
         <svg viewBox="0 0 24 24"><path d="M9 6h11M9 12h11M9 18h11M4 6h1M4 12h1M4 18h1" /></svg>
       </button>
     </div>
-    {#if browse.view !== 'list'}
-      <button class="small ghost density" onclick={() => (browse.density = browse.density === 'S' ? 'M' : browse.density === 'M' ? 'L' : 'S')} title="Taille des vignettes">
-        {browse.density}
-      </button>
-    {/if}
   </div>
 
   {#if !app.games.length}
@@ -203,7 +205,6 @@
     </div>
     <Shelf title="Joués récemment" games={recent} {playing} onopen={open} onmore={() => { browse.sort = 'recent'; setView('grid'); }} />
     <Shelf title="★ Favoris" games={favourites} {playing} onopen={open} onmore={() => (browse.filters.favOnly = true)} />
-    <Shelf title="Les plus joués" games={mostPlayed} {playing} onopen={open} onmore={() => { browse.sort = 'plays'; setView('grid'); }} />
     {#each genreShelves as s (s.genre)}
       <Shelf title={`${genreIcon(s.genre)} ${genreLabel(s.genre)} · ${s.count}`} games={s.games} {playing} onopen={open} onmore={() => showGenre(s.genre)} />
     {/each}
@@ -221,20 +222,30 @@
             {#each grp.games as g (g.rom)}
               <li>
                 <button class="lrow" class:off={!g.present || !g.enabled} onclick={() => open(g)} style="--sys:{systemColor(g.system)}">
-                  <span class="lm"><Marquee image={g.image} name={g.name} system={g.system} size="sm" /></span>
+                  <span class="lm"><Marquee image={g.image} name={displayName(g)} system={g.system} size="sm" /></span>
                   <span class="lt">
-                    <strong>{g.favourite ? '★ ' : ''}{displayName(g)}{variants(g).length ? ` · ${variants(g).join(', ')}` : ''}</strong>
-                    <span class="muted small"><i class="sd"></i>{systemShort(g.system)} · {g.year || '—'} · {genreLabel(g.genre)}{g.plays ? ` · ${g.plays}×` : ''}</span>
+                    <span class="l1">
+                      <strong>{displayName(g)}</strong>
+                      {#each variants(g) as v (v)}<b class="var">{v}</b>{/each}
+                    </span>
+                    <span class="l2">
+                      <SystemLogo system={g.system} size="sm" />
+                      <span>{[g.year, genreLabel(g.genre)].filter(Boolean).join(' · ')}</span>
+                    </span>
                   </span>
-                  {#if playing.get(g.rom)}<span class="badge live">● {playing.get(g.rom)?.[0]}</span>{/if}
+                  <span class="lr">
+                    {#if playing.get(g.rom)}<span class="live">●</span>{/if}
+                    {#if g.favourite}<span class="fav">★</span>{/if}
+                    <span class="chev">›</span>
+                  </span>
                 </button>
               </li>
             {/each}
           </ul>
         {:else}
-          <div class="grid d{browse.density}">
+          <div class="grid">
             {#each grp.games as g (g.rom)}
-              <GameTile game={g} playingOn={playing.get(g.rom)} onopen={open} compact={browse.density === 'S'} />
+              <GameTile game={g} playingOn={playing.get(g.rom)} onopen={open} />
             {/each}
           </div>
         {/if}
@@ -259,54 +270,70 @@
   .filters.has { border-color: var(--accent); color: var(--accent); }
   .filters b { position: absolute; top: -6px; right: -6px; min-width: 20px; height: 20px; border-radius: 99px; background: var(--accent); color: var(--accent-fg); font-size: 0.72rem; display: grid; place-items: center; }
 
-  .quick, .pills { display: flex; gap: 0.4rem; overflow-x: auto; scrollbar-width: none; padding: 0.15rem 0; }
+  .quick, .pills { display: flex; gap: 0.45rem; overflow-x: auto; scrollbar-width: none; padding: 0.15rem 0.05rem; align-items: center; }
   .pills { flex-wrap: wrap; overflow: visible; margin-top: 0.3rem; }
-  .chip { min-height: 34px; padding: 0.2rem 0.75rem; border-radius: 99px; white-space: nowrap; font-size: 0.88rem; }
-  .chip.on { background: var(--accent); color: var(--accent-fg); border-color: transparent; }
-  .chip.sys i { width: 9px; height: 9px; border-radius: 50%; background: var(--c); box-shadow: 0 0 6px var(--c); }
-  .chip.sys.on { background: var(--c); color: #111; }
-  .chip.sys.on i { background: #111; box-shadow: none; }
+  .chip { min-height: 38px; padding: 0.2rem 0.85rem; border-radius: 99px; white-space: nowrap; font-size: 0.88rem; }
+  .chip.on { background: var(--accent); color: var(--accent-fg); border-color: transparent; box-shadow: var(--glow); }
+  /* Filtres système : logos officiels sur pastilles, halo à la couleur du système une fois actifs. */
+  .syschip {
+    flex: none; min-height: 40px; padding: 3px; border-radius: 99px; background: transparent;
+    border: 2px solid transparent; opacity: 0.85;
+  }
+  .syschip.on {
+    opacity: 1; border-color: var(--c);
+    box-shadow: 0 0 12px color-mix(in srgb, var(--c) 70%, transparent);
+  }
   .pill { min-height: 30px; padding: 0.1rem 0.6rem; border-radius: 99px; font-size: 0.82rem; border-color: var(--c, var(--accent)); color: var(--fg); background: color-mix(in srgb, var(--c, var(--accent)) 18%, transparent); }
   .pill span { opacity: 0.6; font-size: 0.7rem; }
 
-  .bar { display: flex; align-items: center; gap: 0.4rem; margin: 0.6rem 0 0.4rem; }
+  .bar { display: flex; align-items: center; gap: 0.4rem; margin: 0.45rem 0 0.35rem; }
   .count { white-space: nowrap; }
   .sort { width: auto; min-width: 0; max-width: 46vw; min-height: 36px; padding: 0.2rem 0.5rem; font-size: 0.85rem; background: var(--bg-2); }
   .seg { display: inline-flex; border: 1px solid var(--line); border-radius: 10px; overflow: hidden; }
   .seg button { border: 0; border-radius: 0; min-height: 36px; width: 38px; padding: 0; background: transparent; }
   .seg button.on { background: var(--bg-3); color: var(--accent); }
   .seg svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; }
-  .density { width: 36px; min-height: 36px; padding: 0; font-weight: 800; }
 
   .hero {
     position: relative; display: block; width: 100%; padding: 0; overflow: hidden; border-radius: 18px;
-    aspect-ratio: 16 / 9; max-height: 340px; border: 1px solid color-mix(in srgb, var(--sys) 45%, var(--line));
+    aspect-ratio: 16 / 8; max-height: 260px; border: 1px solid color-mix(in srgb, var(--sys) 45%, var(--line));
     background: radial-gradient(120% 120% at 50% 0%, color-mix(in srgb, var(--sys) 40%, #000), #05070a);
-    margin: 0.4rem 0 0.8rem;
+    margin: 0.25rem 0 0.5rem;
   }
   .hero video { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; opacity: 0.55; }
   .hero-shade { position: absolute; inset: 0; background: linear-gradient(180deg, rgb(0 0 0 / 0.1), rgb(0 0 0 / 0.75)); }
-  .hero-content { position: absolute; inset: 0; display: grid; grid-template-rows: auto 1fr auto; justify-items: center; padding: 0.8rem 1rem 1rem; gap: 0.3rem; }
-  .kicker { justify-self: start; font-size: 0.72rem; font-weight: 800; letter-spacing: 0.12em; text-transform: uppercase; color: #fff; background: var(--sys); padding: 0.15rem 0.55rem; border-radius: 99px; color: #111; }
-  .hero-logo { align-self: center; width: min(78%, 420px); }
-  .hero-meta { color: #e8ecf1; font-size: 0.85rem; text-shadow: 0 1px 3px #000; }
-  .actions { display: flex; gap: 0.5rem; margin-bottom: 0.4rem; }
-  .actions button { flex: 1; min-height: 40px; font-size: 0.9rem; }
+  .hero-content { position: absolute; inset: 0; display: grid; grid-template-rows: auto 1fr auto; justify-items: center; padding: 0.7rem 1rem 0.8rem; gap: 0.2rem; }
+  .kicker { justify-self: start; font-size: 0.7rem; font-weight: 800; letter-spacing: 0.12em; text-transform: uppercase; background: var(--sys); padding: 0.15rem 0.55rem; border-radius: 99px; color: #111; }
+  .hero-logo { align-self: center; width: min(72%, 380px); }
+  .hero-meta { color: #e8ecf1; font-size: 0.82rem; text-shadow: 0 1px 3px #000; }
+  .actions { display: flex; gap: 0.5rem; margin-bottom: 0.5rem; }
+  .actions button { flex: 1; min-height: 40px; font-size: 0.9rem; border-radius: 12px; }
 
-  .group { margin-bottom: 0.6rem; }
-  .ghead { position: sticky; top: 112px; z-index: 4; margin: 0.6rem 0 0.5rem; padding: 0.35rem 0; background: var(--bg); font-size: 1rem; }
-  .ghead small { color: var(--fg-2); font-weight: 500; font-size: 0.8rem; margin-left: 0.3rem; }
-  .grid { display: grid; gap: 0.7rem; }
-  .grid.dS { grid-template-columns: repeat(auto-fill, minmax(110px, 1fr)); gap: 0.5rem; }
-  .grid.dM { grid-template-columns: repeat(auto-fill, minmax(158px, 1fr)); }
-  .grid.dL { grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); }
+  /* Catégories resserrées. */
+  .group { margin-bottom: 0.3rem; }
+  .ghead { position: sticky; top: 112px; z-index: 4; margin: 0.35rem 0 0.35rem; padding: 0.25rem 0; background: var(--bg); font-size: 0.95rem; }
+  .ghead small { color: var(--fg-2); font-weight: 500; font-size: 0.78rem; margin-left: 0.3rem; }
+  /* Grands rectangles : 1 colonne sur téléphone, 2 à 4 sur tablette et écran large. */
+  .grid { display: grid; gap: 0.6rem; grid-template-columns: repeat(auto-fill, minmax(min(100%, 290px), 1fr)); }
 
-  .list { list-style: none; margin: 0; padding: 0; display: grid; gap: 0.4rem; }
-  .lrow { width: 100%; justify-content: flex-start; gap: 0.75rem; padding: 0.35rem 0.6rem 0.35rem 0.35rem; text-align: left; border-radius: 12px; background: var(--bg-2); }
+  /* Vue liste. */
+  .list { list-style: none; margin: 0; padding: 0; display: grid; gap: 0.45rem; }
+  .lrow {
+    width: 100%; justify-content: flex-start; gap: 0.75rem; padding: 0.4rem 0.7rem 0.4rem 0.4rem;
+    text-align: left; border-radius: 16px; background: var(--bg-2); border: 1px solid var(--line);
+    border-left: 3px solid var(--sys); min-height: 68px;
+  }
+  .lrow:hover, .lrow:focus-visible { border-color: color-mix(in srgb, var(--sys) 60%, var(--line)); border-left-color: var(--sys); box-shadow: 0 6px 18px -10px var(--sys); }
   .lrow.off { opacity: 0.45; }
-  .lm { width: 96px; flex: none; border-radius: 8px; overflow: hidden; }
-  .lt { display: grid; gap: 0.15rem; flex: 1; min-width: 0; }
-  .lt strong { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 0.92rem; }
-  .sd { display: inline-block; width: 7px; height: 7px; border-radius: 50%; background: var(--sys); margin-right: 0.3rem; }
-  .badge.live { color: var(--ok); }
+  .lm { width: 118px; flex: none; border-radius: 11px; overflow: hidden; }
+  .lm :global(.marquee) { aspect-ratio: 5 / 2; }
+  .lt { display: grid; gap: 0.3rem; flex: 1; min-width: 0; }
+  .l1 { display: flex; align-items: center; gap: 0.35rem; min-width: 0; }
+  .l1 strong { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 0.95rem; }
+  .var { flex: none; font-size: 0.64rem; padding: 0.05rem 0.4rem; border-radius: 99px; background: color-mix(in srgb, var(--sys) 22%, var(--bg-3)); }
+  .l2 { display: flex; align-items: center; gap: 0.5rem; font-size: 0.78rem; color: var(--fg-2); min-width: 0; white-space: nowrap; overflow: hidden; }
+  .lr { display: flex; align-items: center; gap: 0.4rem; flex: none; }
+  .live { color: var(--ok); text-shadow: 0 0 6px var(--ok); }
+  .fav { color: var(--neon-gold); }
+  .chev { font-size: 1.4rem; color: var(--fg-2); line-height: 1; }
 </style>
