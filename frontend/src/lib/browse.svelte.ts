@@ -19,7 +19,9 @@ function load(): Saved {
   const d: Saved = { filters: emptyFilters(), sort: 'name', favFirst: false, view: 'auto', density: 'M' };
   try {
     const raw = JSON.parse(localStorage.getItem(KEY) ?? '{}');
-    return { ...d, ...raw, filters: { ...d.filters, ...(raw.filters ?? {}) } };
+    const filters = { ...d.filters, ...(raw.filters ?? {}) };
+    delete (filters as Record<string, unknown>).ratings; // critère retiré (classification)
+    return { ...d, ...raw, filters };
   } catch {
     return d;
   }
@@ -50,7 +52,7 @@ class Browse {
     this.query = '';
   }
 
-  toggle<K extends 'systems' | 'genres' | 'controls' | 'publishers' | 'ratings'>(key: K, value: string): void {
+  toggle<K extends 'systems' | 'genres' | 'controls' | 'publishers'>(key: K, value: string): void {
     const list = this.filters[key];
     this.filters[key] = list.includes(value) ? list.filter((v) => v !== value) : [...list, value];
   }

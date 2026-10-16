@@ -8,8 +8,6 @@
     genreIcon,
     genreLabel,
     publisher,
-    ratingInfo,
-    ratingKey,
     systemColor,
     systemShort,
   } from '../lib/catalog';
@@ -26,10 +24,7 @@
   const genres = $derived(facet(base, (g) => g.genre));
   const controls = $derived(facet(base, (g) => g.controls));
   const publishers = $derived(facet(base, (g) => publisher(g.manufacturer)));
-  const ratings = $derived(facet(base, (g) => (g.rating ? ratingKey(g.rating) : '')));
   const years = $derived([...new Set(base.map((g) => Number(g.year)).filter(Boolean))].sort((a, b) => a - b));
-  const ratingColor = (label: string) =>
-    ratingInfo(app.games.find((g) => g.rating && ratingKey(g.rating) === label)?.rating ?? '')?.color ?? '#9aa5b1';
 
   $effect(() => {
     // Toute modification est mémorisée.
@@ -139,17 +134,6 @@
     </section>
 
     <section>
-      <h4>Classification</h4>
-      <div class="chips">
-        {#each ratings as f (f.value)}
-          <button class="chip sys" style="--c:{ratingColor(f.value)}" class:on={browse.filters.ratings.includes(f.value)} onclick={() => browse.toggle('ratings', f.value)}>
-            <i></i>{f.value} <small>{f.count}</small>
-          </button>
-        {/each}
-      </div>
-    </section>
-
-    <section>
       <h4>Afficher</h4>
       <label class="check"><input type="checkbox" bind:checked={browse.filters.favOnly} /> Seulement les favoris</label>
       <label class="check"><input type="checkbox" bind:checked={browse.filters.playedOnly} /> Seulement les jeux déjà lancés</label>
@@ -172,9 +156,6 @@
   .chip small { color: var(--fg-2); font-size: 0.72rem; margin-left: 0.15rem; }
   .chip.on { background: var(--accent); color: var(--accent-fg); border-color: transparent; }
   .chip.on small { color: inherit; opacity: 0.7; }
-  .chip.sys i { width: 9px; height: 9px; border-radius: 50%; background: var(--c); }
-  .chip.sys.on { background: var(--c); color: #111; }
-  .chip.sys.on i { background: #111; }
   .chip .dot { margin-right: 0.15rem; }
   .chip.syslogo { min-height: 44px; padding: 3px 0.7rem 3px 3px; gap: 0.4rem; }
   .chip.syslogo.on { background: var(--bg-3); color: var(--fg); border-color: var(--c); box-shadow: 0 0 12px color-mix(in srgb, var(--c) 70%, transparent); }

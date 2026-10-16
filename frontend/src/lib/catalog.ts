@@ -55,13 +55,6 @@ export const controlsLabel = (c: string) => (c ? (CONTROLS[c] ?? c) : '—');
 
 export const orientationLabel = (o: string) => (o === 'Vertical' ? 'Vertical (TATE)' : o === 'Horizontal' ? 'Horizontal' : o || '—');
 
-export function ratingInfo(r: string): { label: string; color: string } | null {
-  if (!r) return null;
-  if (r.includes('Green')) return { label: 'Tous publics', color: '#36c27e' };
-  if (r.includes('Yellow')) return { label: 'Violence légère', color: '#e7b416' };
-  if (r.includes('Red')) return { label: 'Violence', color: '#e5534b' };
-  return { label: 'Non classé', color: '#9aa5b1' };
-}
 
 /** « Sammy/SNK Playmore » → « Sammy », « Moss (Taito license) » → « Moss ». */
 export function publisher(m: string): string {
@@ -89,7 +82,6 @@ export interface Filters {
   controls: string[];
   publishers: string[];
   orientation: '' | 'Horizontal' | 'Vertical';
-  ratings: string[];
   yearMin: number | null;
   yearMax: number | null;
   cabinet: string | null; // id de borne : seulement les jeux compatibles
@@ -105,7 +97,6 @@ export const emptyFilters = (): Filters => ({
   controls: [],
   publishers: [],
   orientation: '',
-  ratings: [],
   yearMin: null,
   yearMax: null,
   cabinet: null,
@@ -118,15 +109,12 @@ export const emptyFilters = (): Filters => ({
 /** Nombre de critères « actifs » (hors réglages d'affichage par défaut). */
 export function activeCount(f: Filters): number {
   return (
-    f.systems.length + f.genres.length + f.controls.length + f.publishers.length + f.ratings.length +
+    f.systems.length + f.genres.length + f.controls.length + f.publishers.length +
     (f.orientation ? 1 : 0) + (f.yearMin !== null || f.yearMax !== null ? 1 : 0) + (f.cabinet ? 1 : 0) +
     (f.favOnly ? 1 : 0) + (f.playedOnly ? 1 : 0) + (f.installedOnly ? 0 : 1) + (f.showDisabled ? 1 : 0)
   );
 }
 
-export function ratingKey(r: string): string {
-  return ratingInfo(r)?.label ?? 'Non classé';
-}
 
 export function applyFilters(
   games: Game[],
@@ -144,7 +132,6 @@ export function applyFilters(
     if (f.genres.length && !f.genres.includes(g.genre)) return false;
     if (f.controls.length && !f.controls.includes(g.controls)) return false;
     if (f.publishers.length && !f.publishers.includes(publisher(g.manufacturer))) return false;
-    if (f.ratings.length && !f.ratings.includes(ratingKey(g.rating))) return false;
     if (f.orientation && g.orientation !== f.orientation) return false;
     const y = Number(g.year) || null;
     if (f.yearMin !== null && (y === null || y < f.yearMin)) return false;
@@ -253,12 +240,6 @@ function recencyBucket(ts: number | null): string {
   return 'Plus ancien';
 }
 
-export function sameGenre(all: Game[], g: Game, n = 12): Game[] {
-  return all
-    .filter((x) => x.rom !== g.rom && x.present && x.enabled && x.genre === g.genre)
-    .sort((a, b) => Number(a.system !== g.system) - Number(b.system !== g.system) || b.plays - a.plays || byName(a, b))
-    .slice(0, n);
-}
 
 // Variantes d'un même jeu (débloqué, révision, région…) : lues dans le nom affiché ou dans le
 // nom de fichier, et retirées du titre pour qu'elles restent visibles sous forme de badges.

@@ -73,7 +73,6 @@
     for (const g of f.genres) out.push({ label: `${genreIcon(g)} ${genreLabel(g)}`, clear: () => browse.toggle('genres', g) });
     for (const c of f.controls) out.push({ label: controlsLabel(c), clear: () => browse.toggle('controls', c) });
     for (const p of f.publishers) out.push({ label: p, clear: () => browse.toggle('publishers', p) });
-    for (const r of f.ratings) out.push({ label: r, clear: () => browse.toggle('ratings', r) });
     if (f.orientation) out.push({ label: f.orientation === 'Vertical' ? '▯ Vertical' : '▭ Horizontal', clear: () => (f.orientation = '') });
     if (f.yearMin !== null || f.yearMax !== null)
       out.push({ label: `${f.yearMin ?? '…'} – ${f.yearMax ?? '…'}`, clear: () => ((f.yearMin = null), (f.yearMax = null)) });

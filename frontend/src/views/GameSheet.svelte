@@ -1,6 +1,5 @@
 <script lang="ts">
   import { untrack } from 'svelte';
-  import GameTile from '../components/GameTile.svelte';
   import ProgressBar from '../components/ProgressBar.svelte';
   import Marquee from '../components/Marquee.svelte';
   import Sheet from '../components/Sheet.svelte';
@@ -12,8 +11,6 @@
     genreLabel,
     orientationLabel,
     publisher,
-    ratingInfo,
-    sameGenre,
     systemColor,
     systemShort,
     variants,
@@ -66,8 +63,6 @@
   }
 
   const job = $derived<Job | undefined>(jobId ? app.jobs[jobId] : undefined);
-  const rating = $derived(game ? ratingInfo(game.rating) : null);
-  const similar = $derived(game ? sameGenre(app.games, game) : []);
 
   const compatible = $derived.by<Cabinet[]>(() => {
     const g = game;
@@ -171,7 +166,6 @@
           <div class="tags">
             <SystemLogo system={game.system} />
             {#if game.genre}<span class="tag">{genreIcon(game.genre)} {genreLabel(game.genre)}</span>{/if}
-            {#if rating}<span class="tag" style="--c:{rating.color}"><i class="r"></i>{rating.label}</span>{/if}
           </div>
 
           <dl class="facts">
@@ -245,16 +239,6 @@
         </aside>
       </div>
 
-      {#if similar.length}
-        <section class="similar">
-          <h4>Dans le même genre</h4>
-          <div class="row">
-            {#each similar as g (g.rom)}
-              <div class="cell"><GameTile game={g} onopen={(x) => (rom = x.rom)} /></div>
-            {/each}
-          </div>
-        </section>
-      {/if}
     </article>
   {/if}
 </Sheet>
@@ -311,8 +295,6 @@
   .tags { display: flex; flex-wrap: wrap; gap: 0.4rem; margin: 0.8rem 0; }
   .tag { display: inline-flex; align-items: center; gap: 0.35rem; padding: 0.25rem 0.7rem; border-radius: 99px; background: var(--bg-3); font-size: 0.85rem; }
   .tag.sys { background: color-mix(in srgb, var(--sys) 22%, var(--bg-3)); font-weight: 700; }
-  .tag i { width: 9px; height: 9px; border-radius: 50%; background: var(--sys); box-shadow: 0 0 8px var(--sys); }
-  .tag i.r { background: var(--c); box-shadow: none; }
 
   .facts { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0.5rem; margin: 0; }
   @media (min-width: 560px) { .facts { grid-template-columns: repeat(4, minmax(0, 1fr)); } }
@@ -344,9 +326,4 @@
   .ok { color: var(--ok); margin: 0; font-weight: 600; }
   .hint { margin: 0; font-size: 0.82rem; color: var(--fg-2); }
 
-  .similar { padding: 1.2rem 1rem 0; }
-  .similar h4 { margin-bottom: 0.6rem; }
-  .row { display: grid; grid-auto-flow: column; grid-auto-columns: minmax(150px, 42%); gap: 0.6rem; overflow-x: auto; scroll-snap-type: x mandatory; scrollbar-width: none; padding-bottom: 0.4rem; }
-  .cell { scroll-snap-align: start; display: grid; }
-  @media (min-width: 760px) { .row { grid-auto-columns: 190px; } }
 </style>
