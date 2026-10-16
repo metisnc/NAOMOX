@@ -97,6 +97,10 @@ export interface Settings {
   timehack_interval: number;
   auth_enabled: boolean;
   version: string;
+  hostname: string;
+  network_name: string;
+  network_name_ok: boolean;
+  network_name_error: string | null;
 }
 
 export interface HistoryEntry {

@@ -14,6 +14,8 @@
   ];
 
   let subnet = $state(app.settings?.cabinet_subnet ?? '');
+  let netName = $state(app.settings?.network_name ?? '');
+  const previewName = $derived(netName.trim().toLowerCase().replace(/.local$/, '').replace(/[s_]+/g, '-') || app.settings?.hostname || 'naomox');
   let kind = $state<Kind>('roms');
   let files = $state<FileEntry[]>([]);
   let uploading = $state<{ name: string; pct: number } | null>(null);
@@ -30,8 +32,12 @@
 
   async function saveSubnet(e: SubmitEvent) {
     e.preventDefault();
-    const s = await app.run(() => api.put<Settings>('/settings', { cabinet_subnet: subnet }), 'Réglage enregistré');
-    if (s) app.settings = s;
+    const s = await app.run(() => api.put<Settings>('/settings', { cabinet_subnet: subnet, network_name: netName }), 'Réglages enregistrés');
+    if (s) {
+      app.settings = s;
+      netName = s.network_name;
+      if (s.network_name_error) app.toast('error', `Nom réseau non annoncé : ${s.network_name_error}`, 8000);
+    }
   }
 
   async function scan() {
@@ -107,6 +113,14 @@
 
   <h2>Réseau</h2>
   <form class="card stack" onsubmit={saveSubnet}>
+    <label class="field">Nom réseau de NAOMOX
+      <input bind:value={netName} placeholder={app.settings?.hostname ?? 'naomox'} autocomplete="off" autocapitalize="off" spellcheck="false" />
+    </label>
+    <p class="hint">
+      Interface accessible sur <b>http://{previewName}.local</b>
+      {#if app.settings && !app.settings.network_name_ok}<span class="err"> — non annoncé ({app.settings.network_name_error})</span>{/if}
+      <br />Lettres, chiffres et tirets. Le nom du conteneur Proxmox ({app.settings?.hostname}) reste aussi valable.
+    </p>
     <label class="field">Sous-réseau des bornes (recherche automatique)
       <input bind:value={subnet} placeholder="10.185.10.0/24" />
     </label>
@@ -180,6 +194,8 @@
 </div>
 
 <style>
+  .hint { margin: -0.3rem 0 0; font-size: 0.82rem; color: var(--fg-2); }
+  .hint .err { color: var(--err); }
   .seg { display: inline-flex; border: 1px solid var(--line); border-radius: 10px; overflow: hidden; }
   .seg button { border: 0; border-radius: 0; min-height: 40px; background: transparent; }
   .seg button.active { background: var(--accent); color: var(--accent-fg); }
