@@ -20,6 +20,8 @@ CORES="${CORES:-2}"
 MEMORY="${MEMORY:-1024}"
 TEMPLATE="${TEMPLATE:-local:vztmpl/debian-13-standard_13.1-2_amd64.tar.zst}"
 SSH_KEY="${SSH_KEY:-}"                 # chemin d'une clé publique à autoriser pour root
+ROOT_PASSWORD="${ROOT_PASSWORD:-naomox}" # mot de passe root du CT (console Proxmox)
+NOTES="${NOTES:-$(dirname "$0")/proxmox-notes.md}"  # notes Proxmox du CT (onglet Notes)
 
 pct status "$CTID" >/dev/null 2>&1 && { echo "Le CT $CTID existe déjà, abandon." >&2; exit 1; }
 pveam list "${TEMPLATE%%:*}" | grep -q "${TEMPLATE#*:}" || {
@@ -36,9 +38,14 @@ args=(
   --mp0 "${STORAGE}:${DATA_GB},mp=/srv/naomox,backup=1"
   --net0 "$net" --nameserver "$DNS"
   --onboot 1 --tags naomox
-  --description "NAOMOX - netbooter NetDIMM (Naomi/Chihiro/Triforce)"
+  --password "$ROOT_PASSWORD"
 )
 [ -n "$SSH_KEY" ] && args+=(--ssh-public-keys "$SSH_KEY")
+if [ -f "$NOTES" ]; then
+  args+=(--description "$(cat "$NOTES")")
+else
+  args+=(--description "NAOMOX - netbooter NetDIMM (Naomi/Chihiro/Triforce)")
+fi
 
 pct create "$CTID" "$TEMPLATE" "${args[@]}"
 pct start "$CTID"

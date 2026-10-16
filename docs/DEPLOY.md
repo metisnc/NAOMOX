@@ -24,6 +24,10 @@ CTID=10230 IP=10.185.10.230/24 GW=10.185.10.254 DNS=10.185.10.254 \
 STORAGE=local-zfs DATA_GB=64 SSH_KEY=/root/naomox.pub ./pct-create.sh
 ```
 
+Le script renseigne aussi les **notes Proxmox** du CT (onglet Notes) à partir de
+`deploy/proxmox-notes.md` : accès, disques, service, premiers pas. Mot de passe root :
+`ROOT_PASSWORD=` (par défaut `naomox`, à changer sur un réseau partagé).
+
 Le script exécute l'équivalent de :
 
 ```sh
