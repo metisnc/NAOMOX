@@ -57,12 +57,13 @@
   .label {
     display: flex;
     align-items: center;
+    justify-content: center;
     gap: 0.4rem;
     min-width: 0;
     padding: 0.55rem 0.8rem 0.6rem;
     border-top: 2px solid color-mix(in srgb, var(--sys) 55%, transparent);
   }
-  .name { flex: 1; min-width: 0; font-weight: 700; font-size: 0.95rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .name { flex: 0 1 auto; min-width: 0; text-align: center; font-weight: 700; font-size: 0.95rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .var {
     flex: none; font-size: 0.66rem; font-weight: 700; padding: 0.08rem 0.45rem; border-radius: 99px;
     background: color-mix(in srgb, var(--sys) 22%, var(--bg-3));

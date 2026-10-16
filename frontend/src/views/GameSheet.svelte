@@ -275,10 +275,22 @@
     position: absolute; z-index: 1; left: 50%; top: 50%; width: min(78%, 460px);
     transform: translate(-50%, -50%); pointer-events: none;
     transition: left 0.7s cubic-bezier(0.65, 0, 0.25, 1), top 0.7s cubic-bezier(0.65, 0, 0.25, 1),
-      width 0.7s cubic-bezier(0.65, 0, 0.25, 1), transform 0.7s cubic-bezier(0.65, 0, 0.25, 1);
+      width 0.7s cubic-bezier(0.65, 0, 0.25, 1), transform 0.7s cubic-bezier(0.65, 0, 0.25, 1),
+      padding 0.7s, background-color 0.5s, box-shadow 0.5s;
   }
-  .hero.playing .logo { left: 16px; top: 16px; width: min(34%, 210px); transform: translate(0, 0); }
-  .hero.playing .logo :global(img) { max-height: 80px; }
+  .hero.playing .logo {
+    left: 14px; top: 14px; width: min(42%, 250px); transform: translate(0, 0);
+    padding: 8px 12px; border-radius: 14px;
+    background: rgb(4 5 9 / 0.62); backdrop-filter: blur(6px);
+    box-shadow: 0 0 0 1px color-mix(in srgb, var(--sys) 55%, transparent), 0 6px 22px rgb(0 0 0 / 0.55),
+      0 0 18px color-mix(in srgb, var(--sys) 40%, transparent);
+  }
+  /* Logo bien lisible sur la vidéo : contour clair + halo renforcés. */
+  .hero.playing .logo :global(img) {
+    max-height: 84px;
+    filter: drop-shadow(0 0 1.5px #fff) drop-shadow(0 0 1.5px #fff)
+      drop-shadow(0 0 12px color-mix(in srgb, var(--sys) 80%, transparent)) !important;
+  }
   .tap { position: absolute; inset: 0; z-index: 0; border: 0; border-radius: 0; background: transparent; min-height: 0; }
   .vctl { position: absolute; right: 12px; bottom: 26px; z-index: 2; display: flex; gap: 0.4rem; }
   .vctl button {
