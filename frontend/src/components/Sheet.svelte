@@ -81,7 +81,8 @@
     animation: up 0.24s cubic-bezier(0.2, 0.9, 0.3, 1.1);
     transition: transform 0.2s;
   }
-  .grip { position: sticky; top: 0; z-index: 3; height: 18px; display: grid; place-items: center; cursor: grab; touch-action: none; }
+  .grip { position: sticky; top: 0; z-index: 3; height: 18px; display: grid; place-items: center; cursor: grab; touch-action: none; background: var(--bg-2); }
+  .bare .grip { background: transparent; }
   .grip span { width: 42px; height: 5px; border-radius: 99px; background: var(--line); }
   .bare .grip { position: absolute; left: 0; right: 0; }
   .bare .grip span { background: rgb(255 255 255 / 0.5); }
