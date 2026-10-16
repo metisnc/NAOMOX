@@ -80,7 +80,8 @@ ssh root@192.168.1.230 'systemctl stop naomox-e2e naomox-e2e-mock; rm -rf /tmp/n
 | svelte-check | 0 erreur, 0 avertissement |
 | Playwright | 1 passed (une borne : lancement direct) ; vérifié aussi à la main avec deux bornes virtuelles (choix proposé) |
 | Déploiement | `install.sh` idempotent ; service `naomox` actif ; `http://naomox.local` résolu depuis Windows |
-| Matériel réel | NetDIMM `192.168.1.50` (firmware 4.01) joignable, info lue — **lancement réel encore à tester** |
+| Matériel réel | NetDIMM firmware 4.01 : info lue, **premier lancement de jeu réussi** (2026-10-16) ; checklist complète à dérouler |
+| Installation Proxmox | commande unique testée : mode automatisé et assistant (installation par l'utilisateur), conteneurs de test supprimés |
 
 ---
 
