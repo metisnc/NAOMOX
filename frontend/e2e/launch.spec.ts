@@ -43,12 +43,12 @@ test('ajouter une borne, scanner, lancer un jeu fictif jusqu’à « Terminé »
   await page.getByRole('button', { name: new RegExp(GAME) }).click();
   const sheet = page.getByRole('dialog', { name: GAME });
   await page.screenshot({ path: `${SHOTS}/2-fiche.png` });
-  await sheet.getByRole('button', { name: '▶ Lancer sur Borne virtuelle' }).click();
+  await sheet.getByRole('button', { name: /Lancer/ }).click();
 
   // 5. Suivi en direct dans la fiche, puis « Terminé » dans l'activité.
-  await expect(sheet.locator('.job')).toBeVisible();
+  await expect(sheet.locator('.launching')).toBeVisible();
   await page.screenshot({ path: `${SHOTS}/3-transfert.png` });
-  await expect(sheet.getByText('tourne sur Borne virtuelle')).toBeVisible({ timeout: 60_000 });
+  await expect(sheet.getByText('Jeu lancé — bon jeu !')).toBeVisible({ timeout: 60_000 });
   await expect(page.locator('.toast.ok', { hasText: 'lancé sur Borne virtuelle' })).toBeVisible();
   await page.keyboard.press('Escape');
   await page.getByRole('link', { name: 'Activité' }).click();

@@ -70,7 +70,11 @@ class AppState {
   /** Rafraîchissement groupé des bornes (après la fin d'un job, plusieurs événements arrivent). */
   scheduleCabinetRefresh(): void {
     if (this.#refreshTimer) clearTimeout(this.#refreshTimer);
-    this.#refreshTimer = setTimeout(() => this.refreshCabinets().catch(() => {}), 400);
+    this.#refreshTimer = setTimeout(() => {
+      this.refreshCabinets().catch(() => {});
+      // Compteurs « parties lancées » et « joués récemment ».
+      this.refreshGames().catch(() => {});
+    }, 400);
   }
 
   connect(): void {

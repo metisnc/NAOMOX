@@ -1,7 +1,7 @@
 <script lang="ts">
   import { untrack } from 'svelte';
   import GameTile from '../components/GameTile.svelte';
-  import JobCard from '../components/JobCard.svelte';
+  import ProgressBar from '../components/ProgressBar.svelte';
   import Marquee from '../components/Marquee.svelte';
   import Sheet from '../components/Sheet.svelte';
   import { ApiError, api } from '../lib/api';
@@ -18,7 +18,8 @@
     variants,
     displayName,
   } from '../lib/catalog';
-  import { ago, bytes, romLabel } from '../lib/format';
+  import { ERROR_HELP, ago, bytes, romLabel } from '../lib/format';
+  import { jobMessage, jobPercent, jobTone } from '../lib/progress';
   import { app } from '../lib/state.svelte';
   import type { Cabinet, Game, Job } from '../lib/types';
 
@@ -33,6 +34,13 @@
   let busy = $state(false);
   let muted = $state(true);
   let videoOk = $state(true);
+  let showLog = $state(false);
+  let log = $state<string[]>([]);
+
+  async function toggleLog() {
+    showLog = !showLog;
+    if (showLog && jobId) log = (await api.get<Job>(`/jobs/${jobId}`)).log ?? [];
+  }
 
   const job = $derived<Job | undefined>(jobId ? app.jobs[jobId] : undefined);
   const rating = $derived(game ? ratingInfo(game.rating) : null);
@@ -52,6 +60,7 @@
 
   function preselect() {
     jobId = null;
+    showLog = false;
     note = null;
     videoOk = true;
     let last: string | null = null;
@@ -144,14 +153,30 @@
             <p class="warn">Jeu désactivé (Réglages → Jeux).</p>
           {:else if !compatible.length}
             <p class="warn">Aucune borne {systemShort(game.system)} configurée. <a href="#/bornes" onclick={() => (open = false)}>Ajouter une borne</a></p>
-          {:else if job && (running || done || job.state === 'error')}
-            <JobCard {job} />
-            {#if done}
-              <p class="ok">🎮 {game.name} tourne sur {job.cabinet_name}. Bon jeu !</p>
-              <button onclick={() => (open = false)}>Fermer</button>
-            {:else if job.state === 'error'}
-              <button onclick={() => (jobId = null)}>Choisir une autre borne</button>
-            {/if}
+          {:else if job && (running || done || job.state === 'error' || job.state === 'cancelled')}
+            <!-- Écran de lancement façon WiPiNetbooter-NG -->
+            <div class="launching">
+              <div class="lp-logo"><Marquee image={game.image} name={displayName(game)} system={game.system} size="lg" /></div>
+              <h3>{displayName(game)}</h3>
+              <p class="lp-to">→ {job.cabinet_name}</p>
+              <p class="launch-msg {jobTone(job)}">{jobMessage(job)}</p>
+              {#if running}<ProgressBar value={jobPercent(job)} />{/if}
+              {#if job.state === 'error' && job.error_kind && ERROR_HELP[job.error_kind]}
+                <p class="hint">{ERROR_HELP[job.error_kind]}</p>
+              {/if}
+              <div class="pills">
+                {#if running}
+                  <button class="pill" onclick={() => app.run(() => api.post(`/jobs/${job.id}/cancel`))}>Annuler</button>
+                {:else if done}
+                  <button class="pill primary" onclick={() => (open = false)}>Fermer</button>
+                {:else}
+                  <button class="pill primary" onclick={launch}>Réessayer</button>
+                  <button class="pill" onclick={() => (jobId = null)}>Autre borne</button>
+                {/if}
+                <button class="pill ghost" onclick={toggleLog}>{showLog ? 'Masquer le journal' : 'Journal'}</button>
+              </div>
+              {#if showLog}<pre class="launch-log">{log.join('\n') || '(vide)'}</pre>{/if}
+            </div>
           {:else}
             <h4>Lancer sur</h4>
             <div class="cabs" role="radiogroup" aria-label="Borne">
@@ -173,9 +198,8 @@
                 </button>
               {/each}
             </div>
-            <button class="primary go" disabled={busy || !target} onclick={launch}>
-              ▶ Lancer{target ? ` sur ${target.name}` : ''}
-            </button>
+            <button class="launch-btn" disabled={busy || !target} onclick={launch}>▶&nbsp; Lancer</button>
+            {#if target}<p class="lp-on">sur <strong>{target.name}</strong></p>{/if}
             {#if target && target.status.online === false}
               <p class="hint">La borne semble éteinte : NAOMOX réessaiera quelques secondes avant d’abandonner.</p>
             {/if}
@@ -245,7 +269,17 @@
   .cab.sel { border-color: var(--accent); box-shadow: inset 0 0 0 1px var(--accent); }
   .cn { display: grid; min-width: 0; }
   .cn small { color: var(--fg-2); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-  .go { min-height: 56px; font-size: 1.1rem; border-radius: 14px; box-shadow: 0 8px 24px -8px var(--accent); }
+  .lp-on { margin: -0.2rem 0 0; text-align: center; font-size: 0.85rem; color: var(--fg-2); }
+  .launching {
+    display: grid; justify-items: center; gap: 0.5rem; text-align: center;
+    margin: -0.9rem; padding: 1rem 0.9rem 1.1rem; border-radius: 16px;
+    background: var(--neon-panel); color: var(--neon-text);
+  }
+  .launching :global(.progress) { max-width: 420px; }
+  .launching .launch-log { width: 100%; }
+  .lp-logo { width: min(100%, 260px); }
+  .launching h3 { margin: 0; font-size: 18px; line-height: 1.2; }
+  .lp-to { margin: 0; font-size: 13px; color: var(--neon-muted); }
   .warn { color: var(--warn); margin: 0; }
   .ok { color: var(--ok); margin: 0; font-weight: 600; }
   .hint { margin: 0; font-size: 0.82rem; color: var(--fg-2); }
