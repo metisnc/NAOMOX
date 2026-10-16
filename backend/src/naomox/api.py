@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import asyncio
 import contextlib
 import logging
 import os
@@ -21,6 +22,7 @@ from .auth import COOKIE, SessionSigner, verify_password
 from .config import Config, NetworkConfig
 from .events import EventBroker
 from .jobs import JobManager
+from .logos import trimmed
 from .storage import (
     Cabinet,
     CabinetIn,
@@ -43,7 +45,7 @@ FILE_KINDS: dict[str, tuple[str, ...]] = {
     "images": (".png", ".jpg", ".jpeg", ".webp", ".gif"),
     "videos": (".mp4", ".webm"),
     # Logos des systèmes (marques Sega / Sammy, non fournis) : « Sega Naomi.png », etc.
-    "systems": (".png", ".svg", ".webp"),
+    "systems": (".svg", ".png", ".webp"),
     "firmware": (".bin.gz", ".bin"),
 }
 FIRMWARE_FILES = {
@@ -173,7 +175,12 @@ def _game_view(
         "enabled": row.get("enabled", "").lower() == "yes",
         "favourite": row.get("favourite", "").lower() == "yes",
         "game_id": row.get("game_id"),
-        "image": media_url("images", row.get("image", "")),
+        # Logo recadré sur son contenu (tailles homogènes d'une tuile à l'autre).
+        "image": (
+            url.replace("/media/images/", "/media/logos/", 1)
+            if (url := media_url("images", row.get("image", "")))
+            else None
+        ),
         "video": media_url("videos", row.get("video", "")),
         "present": size is not None,
         "size": size,
@@ -590,6 +597,17 @@ def create_app(config: Config) -> FastAPI:
             raise _err(404, "fichier introuvable") from None
         if not path.exists():
             raise _err(404, "fichier introuvable")
+        return FileResponse(path, headers={"Cache-Control": "public, max-age=86400"})
+
+    @r.get("/media/logos/{name}")
+    async def logo(name: str) -> FileResponse:
+        try:
+            src = resolve_in(app_state.path_for("images"), name)
+        except ValueError:
+            raise _err(404, "fichier introuvable") from None
+        if not src.exists():
+            raise _err(404, "fichier introuvable")
+        path = await asyncio.to_thread(trimmed, src, config.paths.data / "cache" / "logos")
         return FileResponse(path, headers={"Cache-Control": "public, max-age=86400"})
 
     app.include_router(r)

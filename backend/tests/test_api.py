@@ -204,3 +204,20 @@ async def test_system_logos(api: httpx.AsyncClient):
     logos = (await api.get("/api/v1/systems")).json()["logos"]
     assert logos["Sega Naomi"] == "/api/v1/media/systems/Sega Naomi.png" and logos["Sega Chihiro"] is None
     assert (await api.get("/api/v1/media/systems/Sega Naomi.png")).content == png
+
+
+async def test_logo_is_trimmed(api: httpx.AsyncClient):
+    from io import BytesIO
+
+    from PIL import Image
+
+    media = api.app.state.naomox.config.paths.media  # type: ignore[attr-defined]
+    im = Image.new("RGBA", (400, 175), (0, 0, 0, 0))
+    im.paste((255, 0, 0, 255), (150, 60, 250, 110))  # contenu 100 x 50 au milieu
+    im.save(media / "images" / "crzytaxi.png")
+    game = next(g for g in (await api.get("/api/v1/games")).json() if g["rom"] == GAME)
+    assert game["image"] == "/api/v1/media/logos/crzytaxi.png"
+    r = await api.get(game["image"])
+    assert r.status_code == 200
+    w, h = Image.open(BytesIO(r.content)).size
+    assert 100 <= w <= 108 and 50 <= h <= 54
