@@ -29,6 +29,7 @@ for arg in "$@"; do
       systemctl disable --now naomox 2>/dev/null || true
       rm -f "$UNIT" && systemctl daemon-reload
       rm -rf "$APP_DIR" "$CONF_DIR"
+      rm -f /usr/local/bin/naomox-content /usr/sbin/naomox-content /etc/avahi/services/naomox.service
       log "NAOMOX désinstallé ; données conservées dans $DATA_DIR"
       exit 0 ;;
     -h|--help) sed -n '2,10p' "$0"; exit 0 ;;
@@ -80,6 +81,8 @@ log "Environnement Python ($APP_DIR/venv)"
 chmod -R a+rX "$APP_DIR"
 
 install -m 0755 "$REPO/deploy/content-pack.sh" /usr/local/bin/naomox-content
+# « pct exec » utilise un PATH minimal (sans /usr/local/bin) : lien dans /usr/sbin.
+ln -sfn /usr/local/bin/naomox-content /usr/sbin/naomox-content
 
 log "Configuration"
 if [ ! -f "$CONF_DIR/config.yaml" ]; then
