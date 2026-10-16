@@ -2,6 +2,7 @@
   import { api, uploadWithProgress } from '../lib/api';
   import { SYSTEM_SHORT, bytes } from '../lib/format';
   import { app } from '../lib/state.svelte';
+  import { theme } from '../lib/theme.svelte';
   import type { FileEntry, Game, Settings } from '../lib/types';
 
   type Kind = 'roms' | 'images' | 'videos' | 'firmware';
@@ -95,6 +96,15 @@
 <div class="page">
   <h1>Réglages</h1>
 
+  <h2>Apparence</h2>
+  <div class="card row">
+    <span class="grow">Thème</span>
+    <div class="seg" role="group" aria-label="Thème">
+      <button class:active={theme.current === 'dark'} onclick={() => theme.set('dark')}>☾ Noir</button>
+      <button class:active={theme.current === 'light'} onclick={() => theme.set('light')}>☀ Blanc</button>
+    </div>
+  </div>
+
   <h2>Réseau</h2>
   <form class="card stack" onsubmit={saveSubnet}>
     <label class="field">Sous-réseau des bornes (recherche automatique)
@@ -170,6 +180,9 @@
 </div>
 
 <style>
+  .seg { display: inline-flex; border: 1px solid var(--line); border-radius: 10px; overflow: hidden; }
+  .seg button { border: 0; border-radius: 0; min-height: 40px; background: transparent; }
+  .seg button.active { background: var(--accent); color: var(--accent-fg); }
   .tabs { display: flex; gap: 0.4rem; flex-wrap: wrap; }
   .tabs .active { background: var(--accent); color: var(--accent-fg); }
   .files, .games { list-style: none; margin: 0; padding: 0; display: grid; gap: 0.2rem; max-height: 50dvh; overflow: auto; }

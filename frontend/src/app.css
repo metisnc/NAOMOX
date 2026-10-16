@@ -1,15 +1,30 @@
+/* Thème néon (repris du launcher WiPiNetbooter-NG). Noir par défaut, blanc via
+   <html data-theme="light"> (Réglages ou bouton de l'en-tête). */
 :root {
-  --bg: #0e1116;
-  --bg-2: #161b22;
-  --bg-3: #1f2630;
-  --line: #2a323d;
-  --fg: #e8ecf1;
-  --fg-2: #9aa5b1;
-  --accent: #f2a33a;
-  --accent-fg: #1a1205;
-  --ok: #3fb67b;
-  --warn: #e7b416;
-  --err: #e5534b;
+  --neon-cyan: #19e6ff;
+  --neon-magenta: #ff2bd6;
+  --neon-gold: #ffcc33;
+  --bg: #07080d;
+  --bg-2: #11131d;
+  --bg-3: #191c2a;
+  --line: #262a3d;
+  --fg: #f2f4ff;
+  --fg-2: #8a90a8;
+  --accent: var(--neon-cyan);
+  --accent-fg: #07080d;
+  --accent-2: var(--neon-magenta);
+  --ok: #3dff9a;
+  --warn: #ffcc33;
+  --err: #ff4d5e;
+  --glow: 0 0 14px color-mix(in srgb, var(--accent) 45%, transparent);
+  /* Alias historiques du thème de lancement. */
+  --neon-ok: var(--ok);
+  --neon-danger: var(--err);
+  --neon-panel: var(--bg-2);
+  --neon-track: var(--bg-3);
+  --neon-line: var(--line);
+  --neon-text: var(--fg);
+  --neon-muted: var(--fg-2);
   --radius: 14px;
   --nav-h: 64px;
   --safe-b: env(safe-area-inset-bottom, 0px);
@@ -20,16 +35,22 @@
   -webkit-tap-highlight-color: transparent;
 }
 
-@media (prefers-color-scheme: light) {
-  :root {
-    --bg: #f5f6f8;
-    --bg-2: #ffffff;
-    --bg-3: #eceff3;
-    --line: #d8dde4;
-    --fg: #14181d;
-    --fg-2: #5b6672;
-    color-scheme: light;
-  }
+:root[data-theme='light'] {
+  --neon-cyan: #00a9cc;
+  --neon-magenta: #d4129f;
+  --neon-gold: #e0a400;
+  --bg: #f3f4fa;
+  --bg-2: #ffffff;
+  --bg-3: #e9ebf5;
+  --line: #d9dcea;
+  --fg: #12142b;
+  --fg-2: #5d6483;
+  --accent-fg: #ffffff;
+  --ok: #0fa85c;
+  --warn: #b98600;
+  --err: #d92b3d;
+  --glow: 0 4px 14px color-mix(in srgb, var(--accent) 30%, transparent);
+  color-scheme: light;
 }
 
 * { box-sizing: border-box; }
@@ -56,7 +77,7 @@ button, .btn {
   text-decoration: none;
 }
 button:disabled { opacity: 0.45; cursor: default; }
-button.primary, .btn.primary { background: var(--accent); color: var(--accent-fg); border-color: transparent; font-weight: 700; }
+button.primary, .btn.primary { background: var(--accent); color: var(--accent-fg); border-color: transparent; font-weight: 700; box-shadow: var(--glow); }
 button.danger { color: var(--err); }
 button.ghost { background: transparent; border-color: transparent; }
 button.small { min-height: 34px; padding: 0.3rem 0.65rem; font-size: 0.9rem; }
@@ -90,18 +111,7 @@ label.check { display: flex; align-items: center; gap: 0.6rem; min-height: 44px;
 
 input[type='search']::-webkit-search-cancel-button { appearance: none; -webkit-appearance: none; }
 
-/* --- Thème « lancement » repris du launcher WiPiNetbooter-NG (néon cyan / magenta) --- */
-:root {
-  --neon-cyan: #19e6ff;
-  --neon-magenta: #ff2bd6;
-  --neon-ok: #3dff9a;
-  --neon-danger: #ff4d5e;
-  --neon-panel: #11131d;
-  --neon-track: #191c2a;
-  --neon-line: #262a3d;
-  --neon-text: #f2f4ff;
-  --neon-muted: #8a90a8;
-}
+/* --- Écran de lancement (WiPiNetbooter-NG) --- */
 .launch-msg { margin: 0; font-size: 15px; min-height: 20px; }
 .launch-msg.ok { color: var(--neon-ok); }
 .launch-msg.err { color: var(--neon-danger); }

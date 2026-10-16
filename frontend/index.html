@@ -3,7 +3,16 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-    <meta name="theme-color" content="#0e1116" />
+    <meta name="theme-color" content="#07080d" />
+    <script>
+      // Thème appliqué avant le rendu (noir par défaut).
+      try {
+        if (localStorage.getItem('naomox.theme') === 'light') {
+          document.documentElement.dataset.theme = 'light';
+          document.querySelector('meta[name=theme-color]').content = '#f3f4fa';
+        }
+      } catch (e) {}
+    </script>
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <link rel="icon" href="/icon.svg" type="image/svg+xml" />
     <link rel="manifest" href="/manifest.webmanifest" />

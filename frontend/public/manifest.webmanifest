@@ -4,7 +4,7 @@
   "description": "Netbooter NetDIMM — Naomi, Naomi 2, Chihiro, Triforce",
   "start_url": "/",
   "display": "standalone",
-  "background_color": "#0e1116",
-  "theme_color": "#0e1116",
+  "background_color": "#07080d",
+  "theme_color": "#07080d",
   "icons": [{ "src": "/icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any maskable" }]
 }

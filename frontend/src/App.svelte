@@ -1,6 +1,7 @@
 <script lang="ts">
   import { onMount } from 'svelte';
   import { app } from './lib/state.svelte';
+  import { theme } from './lib/theme.svelte';
   import JobBanner from './components/JobBanner.svelte';
   import Toasts from './components/Toasts.svelte';
   import Login from './views/Login.svelte';
@@ -32,9 +33,14 @@
 {:else}
   <header>
     <a class="brand" href="#/">NAOMOX</a>
-    <span class="live" class:on={app.live} title={app.live ? 'Temps réel connecté' : 'Temps réel déconnecté'}>
-      <span class="dot" class:on={app.live} class:off={!app.live}></span>
-      {app.live ? 'en direct' : 'hors ligne'}
+    <span class="right">
+      <span class="live" class:on={app.live} title={app.live ? 'Temps réel connecté' : 'Temps réel déconnecté'}>
+        <span class="dot" class:on={app.live} class:off={!app.live}></span>
+        {app.live ? 'en direct' : 'hors ligne'}
+      </span>
+      <button class="ghost theme" onclick={() => theme.toggle()} aria-label={theme.current === 'dark' ? 'Passer en thème clair' : 'Passer en thème sombre'}>
+        {theme.current === 'dark' ? '☀' : '☾'}
+      </button>
     </span>
   </header>
   <JobBanner />
@@ -62,7 +68,7 @@
 <Toasts />
 
 <style>
-  .splash { display: grid; place-items: center; height: 100dvh; font-weight: 800; letter-spacing: 0.2em; color: var(--accent); }
+  .splash { display: grid; place-items: center; height: 100dvh; font-weight: 800; letter-spacing: 0.2em; color: var(--neon-cyan); text-shadow: 0 0 12px var(--neon-magenta); }
   header {
     position: sticky; top: 0; z-index: 20;
     display: flex; align-items: center; justify-content: space-between;
@@ -71,7 +77,14 @@
     backdrop-filter: blur(10px);
     border-bottom: 1px solid var(--line);
   }
-  .brand { font-weight: 900; letter-spacing: 0.16em; color: var(--accent); text-decoration: none; }
+  .brand {
+    font-weight: 900; letter-spacing: 0.18em; text-decoration: none;
+    background: linear-gradient(90deg, var(--neon-cyan), var(--neon-magenta));
+    -webkit-background-clip: text; background-clip: text; color: transparent;
+    filter: drop-shadow(0 0 6px color-mix(in srgb, var(--neon-magenta) 45%, transparent));
+  }
+  .right { display: flex; align-items: center; gap: 0.4rem; }
+  .theme { width: 40px; min-height: 40px; padding: 0; font-size: 1.15rem; color: var(--fg-2); }
   .live { display: flex; align-items: center; gap: 0.4rem; font-size: 0.8rem; color: var(--fg-2); }
   nav {
     position: fixed; bottom: 0; left: 0; right: 0; z-index: 30;
@@ -83,7 +96,8 @@
     position: relative; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px;
     color: var(--fg-2); text-decoration: none; font-size: 0.75rem;
   }
-  nav a.active { color: var(--accent); }
+  nav a.active { color: var(--accent); text-shadow: var(--glow); }
+  nav a.active svg { filter: drop-shadow(0 0 5px var(--accent)); }
   nav svg { width: 24px; height: 24px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
   .count {
     position: absolute; top: 6px; left: calc(50% + 6px);

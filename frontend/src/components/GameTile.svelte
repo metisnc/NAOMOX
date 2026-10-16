@@ -80,7 +80,7 @@
   .sys i { width: 7px; height: 7px; border-radius: 50%; background: var(--sys); box-shadow: 0 0 6px var(--sys); }
   .fav {
     position: absolute; top: 6px; right: 8px;
-    color: #ffc63d; font-size: 1rem; text-shadow: 0 1px 4px rgb(0 0 0 / 0.8);
+    color: var(--neon-gold); font-size: 1rem; text-shadow: 0 1px 4px rgb(0 0 0 / 0.8);
   }
   .live {
     position: absolute; top: 6px; left: 6px; display: inline-flex; align-items: center; gap: 0.3rem;
