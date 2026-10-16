@@ -50,9 +50,11 @@
   const nActive = $derived(activeCount(browse.filters));
 
   // Vue « rayons » quand on ne cherche ni ne filtre.
-  const showShelves = $derived(browse.view === 'auto' && !browse.query.trim() && nActive === 0);
+  // Vue rayons conservée avec les filtres (console, favoris…) ; la recherche texte passe en grille.
+  const showShelves = $derived(browse.view === 'auto' && !browse.query.trim());
 
-  const launchable = $derived(app.games.filter((g) => g.present && g.enabled));
+  // Les rayons ne montrent que les jeux qui passent les filtres ; un rayon vide disparaît.
+  const launchable = $derived(filtered.filter((g) => g.present && g.enabled));
   const recent = $derived(
     launchable.filter((g) => g.last_played).sort((a, b) => (b.last_played ?? 0) - (a.last_played ?? 0)).slice(0, 12),
   );
@@ -107,7 +109,7 @@
 
   function showGenre(genre: string) {
     browse.filters.genres = [genre];
-    browse.view = browse.view === 'auto' ? 'auto' : browse.view;
+    browse.view = 'grid';
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }
 
@@ -184,6 +186,11 @@
       <p>Aucune ROM installée sur le serveur.</p>
       <p class="small">Copiez les fichiers <code>.bin.gz</code> dans <code>/srv/naomox/roms</code> ou utilisez <a href="#/reglages">Réglages → Fichiers</a>.</p>
     </div>
+  {:else if showShelves && !launchable.length}
+    <div class="empty">
+      <p>Aucun jeu ne correspond à ces filtres.</p>
+      <button onclick={() => browse.reset()}>Effacer les filtres</button>
+    </div>
   {:else if showShelves}
     {#if featured}
       <button class="hero" style="--sys:{systemColor(featured.system)}" onclick={() => featured && open(featured)}>
@@ -203,7 +210,7 @@
       <button onclick={() => setView('grid')}>Tous les jeux ({filtered.length})</button>
     </div>
     <Shelf title="Joués récemment" games={recent} {playing} onopen={open} onmore={() => { browse.sort = 'recent'; setView('grid'); }} />
-    <Shelf title="★ Favoris" games={favourites} {playing} onopen={open} onmore={() => (browse.filters.favOnly = true)} />
+    <Shelf title="★ Favoris" games={favourites} {playing} onopen={open} onmore={() => { browse.filters.favOnly = true; setView('grid'); }} />
     {#each genreShelves as s (s.genre)}
       <Shelf title={`${genreIcon(s.genre)} ${genreLabel(s.genre)} · ${s.count}`} games={s.games} {playing} onopen={open} onmore={() => showGenre(s.genre)} />
     {/each}
