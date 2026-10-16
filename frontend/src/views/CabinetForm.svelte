@@ -23,6 +23,9 @@
     osm_mode: 'once',
   });
 
+  // « 10,185,10,5 » ou « 10.185.10.5 » avec espaces → « 10.185.10.5 ».
+  const normalizeIp = (v: string) => v.trim().replace(/[,;\s]+/g, '.').replace(/\.{2,}/g, '.');
+
   let form = $state<CabinetFields>(blank());
   let busy = $state(false);
   let fwVersion = $state('4.03');
@@ -43,6 +46,7 @@
   async function save(e: SubmitEvent) {
     e.preventDefault();
     busy = true;
+    form.ip = normalizeIp(form.ip);
     const body = { ...form, default_game: form.default_game || null };
     const ok = cabinet
       ? await app.run(() => api.patch(`/cabinets/${cabinet.id}`, body), 'Borne mise à jour')
@@ -87,7 +91,17 @@
   <form class="stack" onsubmit={save}>
     <label class="field">Nom<input required maxlength="64" bind:value={form.name} placeholder="Naomi salon" /></label>
     <label class="field">Adresse IP de la NetDIMM
-      <input required inputmode="decimal" pattern={'\\d{1,3}(\\.\\d{1,3}){3}'} bind:value={form.ip} placeholder="10.185.10.50" />
+      <!-- Clavier texte : le clavier « décimal » des téléphones en français n'a pas de point. -->
+      <input
+        required
+        type="text"
+        autocomplete="off"
+        autocapitalize="off"
+        spellcheck="false"
+        bind:value={form.ip}
+        onblur={() => (form.ip = normalizeIp(form.ip))}
+        placeholder="10.185.10.50"
+      />
     </label>
     <label class="field">Type de borne
       <select bind:value={form.type}>
