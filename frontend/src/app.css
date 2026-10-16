@@ -17,6 +17,7 @@
   --warn: #ffcc33;
   --err: #ff4d5e;
   --glow: 0 0 14px color-mix(in srgb, var(--accent) 45%, transparent);
+  --sys-chihiro: #f2f4ff;
   /* Alias historiques du thème de lancement. */
   --neon-ok: var(--ok);
   --neon-danger: var(--err);
@@ -50,6 +51,7 @@
   --warn: #b98600;
   --err: #d92b3d;
   --glow: 0 4px 14px color-mix(in srgb, var(--accent) 30%, transparent);
+  --sys-chihiro: #8d96ad;
   color-scheme: light;
 }
 

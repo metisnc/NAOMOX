@@ -7,8 +7,9 @@ import type { Game } from './types';
 export const SYSTEMS: Record<string, { short: string; color: string }> = {
   'Sega Naomi': { short: 'Naomi', color: '#f2a33a' },
   'Sega Naomi2': { short: 'Naomi 2', color: '#e5534b' },
-  'Sammy Atomiswave': { short: 'Atomiswave', color: '#3fa7e0' },
-  'Sega Chihiro': { short: 'Chihiro', color: '#36c27e' },
+  'Sammy Atomiswave': { short: 'Atomiswave', color: '#3ddc6a' },
+  // Blanc en thème sombre, argent en thème clair (voir --sys-chihiro dans app.css).
+  'Sega Chihiro': { short: 'Chihiro', color: 'var(--sys-chihiro)' },
   'Sega Triforce': { short: 'Triforce', color: '#a77bea' },
 };
 export const systemShort = (s: string) => SYSTEMS[s]?.short ?? s;

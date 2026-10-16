@@ -133,6 +133,7 @@
   </div>
 
   <div class="quick">
+    <button class="chip" class:on={browse.filters.favOnly} onclick={() => (browse.filters.favOnly = !browse.filters.favOnly)}>★ Favoris</button>
     {#each Object.keys(SYSTEMS) as s (s)}
       {#if app.games.some((g) => g.system === s && g.present)}
         <button
@@ -147,7 +148,6 @@
         </button>
       {/if}
     {/each}
-    <button class="chip" class:on={browse.filters.favOnly} onclick={() => (browse.filters.favOnly = !browse.filters.favOnly)}>★ Favoris</button>
   </div>
 
   {#if pills.length}
