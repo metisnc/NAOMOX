@@ -119,7 +119,7 @@
     <p class="hint">
       Interface accessible sur <b>http://{previewName}.local</b>
       {#if app.settings && !app.settings.network_name_ok}<span class="err"> — non annoncé ({app.settings.network_name_error})</span>{/if}
-      <br />Lettres, chiffres et tirets. Le nom du conteneur Proxmox ({app.settings?.hostname}) reste aussi valable.
+      <br />Lettres, chiffres et tirets.
     </p>
     <label class="field">Sous-réseau des bornes (recherche automatique)
       <input bind:value={subnet} placeholder="10.185.10.0/24" />
