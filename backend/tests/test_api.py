@@ -179,3 +179,18 @@ async def test_auth_enabled(tmp_path: Path):
             ok = await c.post("/api/v1/auth/login", json={"password": "s3cret"}, headers=H)
             assert ok.status_code == 200
             assert (await c.get("/api/v1/games")).status_code == 200
+
+
+async def test_frontend_cache_headers(tmp_path: Path):
+    front = tmp_path / "front"
+    (front / "assets").mkdir(parents=True)
+    (front / "index.html").write_text("<!doctype html><title>NAOMOX</title>")
+    (front / "assets" / "index-abc123.js").write_text("console.log(1)")
+    app = create_app(config(tmp_path, paths={"data": str(tmp_path / "data"), "frontend": str(front)}))
+    async with app.router.lifespan_context(app):
+        transport = httpx.ASGITransport(app=app)
+        async with httpx.AsyncClient(transport=transport, base_url="http://test") as c:
+            root = await c.get("/")
+            assert root.status_code == 200 and root.headers["cache-control"] == "no-cache"
+            asset = await c.get("/assets/index-abc123.js")
+            assert "immutable" in asset.headers["cache-control"]

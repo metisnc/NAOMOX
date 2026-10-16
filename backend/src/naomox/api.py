@@ -89,6 +89,19 @@ class Naomox:
         }[kind]
 
 
+class FrontendFiles(StaticFiles):
+    """Frontend compilé : index.html revalidé à chaque visite (sinon Safari / la PWA gardent
+    une ancienne version), fichiers versionnés de Vite (assets/*-<hash>.*) en cache long."""
+
+    async def get_response(self, path: str, scope: Any) -> Response:
+        response = await super().get_response(path, scope)
+        if path.startswith("assets/"):
+            response.headers["Cache-Control"] = "public, max-age=31536000, immutable"
+        else:
+            response.headers["Cache-Control"] = "no-cache"
+        return response
+
+
 # --------------------------------------------------------------------------- schémas
 
 
@@ -564,7 +577,7 @@ def create_app(config: Config) -> FastAPI:
 
     # Frontend compilé (Vite) servi à la racine ; routage côté client par hash (#/…).
     if config.paths.frontend and Path(config.paths.frontend, "index.html").exists():
-        app.mount("/", StaticFiles(directory=config.paths.frontend, html=True), name="frontend")
+        app.mount("/", FrontendFiles(directory=config.paths.frontend, html=True), name="frontend")
     else:
 
         @app.get("/", include_in_schema=False)
