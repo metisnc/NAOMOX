@@ -18,6 +18,17 @@
   ];
 
   let route = $state(location.hash.slice(1) || '/');
+
+  // « hors ligne » seulement après 3 s de coupure (pas de clignotement au chargement).
+  let offline = $state(false);
+  $effect(() => {
+    if (app.live) {
+      offline = false;
+      return;
+    }
+    const t = setTimeout(() => (offline = true), 3000);
+    return () => clearTimeout(t);
+  });
   onMount(() => {
     const onHash = () => (route = location.hash.slice(1) || '/');
     window.addEventListener('hashchange', onHash);
@@ -34,10 +45,11 @@
   <header>
     <a class="brand" href="#/">NAOMOX</a>
     <span class="right">
-      <span class="live" class:on={app.live} title={app.live ? 'Temps réel connecté' : 'Temps réel déconnecté'}>
-        <span class="dot" class:on={app.live} class:off={!app.live}></span>
-        {app.live ? 'en direct' : 'hors ligne'}
-      </span>
+      {#if offline}
+        <span class="live" title="Connexion temps réel au serveur perdue, reconnexion automatique…">
+          <span class="dot off"></span>hors ligne
+        </span>
+      {/if}
       <button class="ghost theme" onclick={() => theme.toggle()} aria-label={theme.current === 'dark' ? 'Passer en thème clair' : 'Passer en thème sombre'}>
         {theme.current === 'dark' ? '☀' : '☾'}
       </button>
@@ -85,7 +97,7 @@
   }
   .right { display: flex; align-items: center; gap: 0.4rem; }
   .theme { width: 40px; min-height: 40px; padding: 0; font-size: 1.15rem; color: var(--fg-2); }
-  .live { display: flex; align-items: center; gap: 0.4rem; font-size: 0.8rem; color: var(--fg-2); }
+  .live { display: flex; align-items: center; gap: 0.4rem; font-size: 0.8rem; font-weight: 700; color: var(--err); }
   nav {
     position: fixed; bottom: 0; left: 0; right: 0; z-index: 30;
     display: grid; grid-template-columns: repeat(4, 1fr);

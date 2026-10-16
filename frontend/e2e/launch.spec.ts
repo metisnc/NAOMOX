@@ -9,7 +9,7 @@ const SHOTS = 'e2e/.results/screens';
 test('ajouter une borne, scanner, lancer un jeu fictif jusqu’à « Terminé »', async ({ page }) => {
   await page.goto('/');
   await expect(page.locator('header .brand')).toHaveText('NAOMOX');
-  await expect(page.locator('header .live')).toContainText('en direct');
+  await expect(page.locator('header .live')).toHaveCount(0);
 
   // 1. Découverte de la NetDIMM virtuelle puis ajout de la borne.
   await page.getByRole('link', { name: 'Bornes' }).click();
