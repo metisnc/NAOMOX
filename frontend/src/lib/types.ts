@@ -88,6 +88,7 @@ export interface Systems {
   dimm_types: string[];
   compatibility: Record<string, string[]>;
   firmware_versions: string[];
+  logos: Record<string, string | null>;
 }
 
 export interface Settings {
