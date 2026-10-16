@@ -18,7 +18,7 @@
     variants,
     displayName,
   } from '../lib/catalog';
-  import { ERROR_HELP, ago, bytes, romLabel } from '../lib/format';
+  import { ERROR_HELP, ago, romLabel } from '../lib/format';
   import { jobMessage, jobPercent, jobTone } from '../lib/progress';
   import { app } from '../lib/state.svelte';
   import type { Cabinet, Game, Job } from '../lib/types';
@@ -34,6 +34,28 @@
   let busy = $state(false);
   let muted = $state(true);
   let videoOk = $state(true);
+  // Vidéo : le logo se range en haut à gauche pendant la lecture, revient au centre en pause.
+  let video = $state<HTMLVideoElement | null>(null);
+  let playing = $state(false);
+  let docked = $state(false);
+  let dockTimer: ReturnType<typeof setTimeout> | null = null;
+
+  function onPlay() {
+    playing = true;
+    if (dockTimer) clearTimeout(dockTimer);
+    // Laisser le logo visible au centre un instant avant qu'il ne se range.
+    dockTimer = setTimeout(() => (docked = true), 1200);
+  }
+  function onPause() {
+    playing = false;
+    if (dockTimer) clearTimeout(dockTimer);
+    docked = false;
+  }
+  function togglePlay() {
+    if (!video) return;
+    if (video.paused) video.play().catch(() => {});
+    else video.pause();
+  }
   let showLog = $state(false);
   let log = $state<string[]>([]);
 
@@ -59,6 +81,7 @@
   });
 
   function preselect() {
+    onPause();
     jobId = null;
     showLog = false;
     note = null;
@@ -108,14 +131,28 @@
 <Sheet bind:this={sheet} bind:open title={game?.name ?? ''} wide bare>
   {#if game}
     <article class="fiche" style="--sys:{systemColor(game.system)}">
-      <header class="hero">
+      <header class="hero" class:playing={docked} class:has-video={game.video && videoOk}>
         {#if game.video && videoOk}
           <!-- svelte-ignore a11y_media_has_caption -->
-          <video src={game.video} autoplay loop playsinline {muted} onerror={() => (videoOk = false)}></video>
-          <button class="sound" onclick={() => (muted = !muted)} aria-label={muted ? 'Activer le son' : 'Couper le son'}>{muted ? '🔇' : '🔊'}</button>
+          <video
+            bind:this={video}
+            src={game.video}
+            autoplay
+            loop
+            playsinline
+            {muted}
+            onplay={onPlay}
+            onpause={onPause}
+            onerror={() => ((videoOk = false), onPause())}
+          ></video>
+          <button class="tap" onclick={togglePlay} aria-label={playing ? 'Mettre la vidéo en pause' : 'Lire la vidéo'}></button>
+          <div class="vctl">
+            <button onclick={togglePlay} aria-label={playing ? 'Pause' : 'Lecture'}>{playing ? '❚❚' : '▶'}</button>
+            <button onclick={() => (muted = !muted)} aria-label={muted ? 'Activer le son' : 'Couper le son'}>{muted ? '🔇' : '🔊'}</button>
+          </div>
         {/if}
         <div class="glow"></div>
-        <div class="logo"><Marquee image={game.image} name={game.name} system={game.system} size="lg" /></div>
+        <div class="logo"><Marquee image={game.image} name={displayName(game)} system={game.system} size="lg" /></div>
       </header>
 
       <div class="content">
@@ -141,8 +178,6 @@
             <div><dt>Écran</dt><dd>{orientationLabel(game.orientation)}</dd></div>
             <div><dt>Éditeur</dt><dd>{publisher(game.manufacturer)}</dd></div>
             <div><dt>Parties lancées</dt><dd>{game.plays || 'jamais'}{game.last_played ? ` · ${ago(game.last_played)}` : ''}</dd></div>
-            <div><dt>Taille ROM</dt><dd>{game.size ? bytes(game.size) : 'absente'}</dd></div>
-            <div><dt>ID</dt><dd class="mono">{game.game_id || '—'}</dd></div>
           </dl>
         </div>
 
@@ -230,12 +265,24 @@
     width: 100%; height: min(56.25vw, 46dvh, 560px); min-height: 210px; border-radius: var(--r) var(--r) 0 0;
     background: radial-gradient(120% 120% at 50% 10%, color-mix(in srgb, var(--sys) 45%, #000), #040507 75%);
   }
-  .hero video { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; opacity: 0.6; }
-  .glow { position: absolute; inset: 0; background: linear-gradient(180deg, rgb(0 0 0 / 0.15) 0%, transparent 35%, rgb(0 0 0 / 0.55) 75%, var(--bg-2) 100%); }
-  .logo { position: relative; width: min(78%, 460px); }
-  .sound {
-    position: absolute; left: 12px; top: 14px; z-index: 2; width: 38px; min-height: 38px; padding: 0; border-radius: 50%;
-    background: rgb(0 0 0 / 0.55); border-color: rgb(255 255 255 / 0.2); backdrop-filter: blur(6px);
+  .hero video { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; opacity: 0.45; transition: opacity 0.7s; }
+  .hero.playing video { opacity: 0.95; }
+  .glow { position: absolute; inset: 0; pointer-events: none; background: linear-gradient(180deg, rgb(0 0 0 / 0.15) 0%, transparent 35%, rgb(0 0 0 / 0.55) 75%, var(--bg-2) 100%); transition: opacity 0.7s; }
+  .hero.playing .glow { opacity: 0.55; }
+  /* Logo : centré et grand à l'arrêt, petit en haut à gauche pendant la lecture. */
+  .logo {
+    position: absolute; z-index: 1; left: 50%; top: 50%; width: min(78%, 460px);
+    transform: translate(-50%, -50%); pointer-events: none;
+    transition: left 0.7s cubic-bezier(0.65, 0, 0.25, 1), top 0.7s cubic-bezier(0.65, 0, 0.25, 1),
+      width 0.7s cubic-bezier(0.65, 0, 0.25, 1), transform 0.7s cubic-bezier(0.65, 0, 0.25, 1);
+  }
+  .hero.playing .logo { left: 16px; top: 16px; width: min(34%, 210px); transform: translate(0, 0); }
+  .hero.playing .logo :global(img) { max-height: 80px; }
+  .tap { position: absolute; inset: 0; z-index: 0; border: 0; border-radius: 0; background: transparent; min-height: 0; }
+  .vctl { position: absolute; right: 12px; bottom: 26px; z-index: 2; display: flex; gap: 0.4rem; }
+  .vctl button {
+    width: 40px; min-height: 40px; padding: 0; border-radius: 50%; font-size: 0.95rem; color: #fff;
+    background: rgb(0 0 0 / 0.55); border-color: rgb(255 255 255 / 0.25); backdrop-filter: blur(6px);
   }
 
   .content { display: grid; gap: 1.2rem; padding: 0.4rem 1rem 0; }
@@ -246,7 +293,7 @@
   .variant { display: inline-block; margin-left: 0.4rem; vertical-align: middle; font-size: 0.72rem; font-weight: 700; padding: 0.1rem 0.5rem; border-radius: 99px; background: var(--bg-3); color: var(--fg-2); }
   .sub { margin: 0.25rem 0 0; color: var(--fg-2); }
   .fav { width: 46px; min-height: 46px; padding: 0; border-radius: 50%; font-size: 1.4rem; color: var(--fg-2); }
-  .fav.on { color: #ffc63d; border-color: color-mix(in srgb, #ffc63d 50%, var(--line)); background: color-mix(in srgb, #ffc63d 14%, var(--bg-3)); }
+  .fav.on { color: var(--neon-gold); border-color: color-mix(in srgb, var(--neon-gold) 50%, var(--line)); background: color-mix(in srgb, var(--neon-gold) 14%, var(--bg-3)); }
 
   .tags { display: flex; flex-wrap: wrap; gap: 0.4rem; margin: 0.8rem 0; }
   .tag { display: inline-flex; align-items: center; gap: 0.35rem; padding: 0.25rem 0.7rem; border-radius: 99px; background: var(--bg-3); font-size: 0.85rem; }
@@ -255,7 +302,7 @@
   .tag i.r { background: var(--c); box-shadow: none; }
 
   .facts { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0.5rem; margin: 0; }
-  @media (min-width: 560px) { .facts { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+  @media (min-width: 560px) { .facts { grid-template-columns: repeat(4, minmax(0, 1fr)); } }
   .facts div { background: var(--bg); border: 1px solid var(--line); border-radius: 12px; padding: 0.55rem 0.7rem; min-width: 0; }
   dt { font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.06em; color: var(--fg-2); }
   dd { margin: 0.15rem 0 0; font-weight: 600; font-size: 0.92rem; overflow: hidden; text-overflow: ellipsis; }
