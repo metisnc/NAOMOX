@@ -43,7 +43,7 @@ case "${VERSION_ID:-}" in 12|13) ;; *) die "Debian 12 ou 13 requis (trouvé : ${
 
 log "Paquets système"
 need=()
-for p in python3 python3-venv ca-certificates curl; do
+for p in python3 python3-venv ca-certificates curl avahi-daemon; do
   dpkg -s "$p" >/dev/null 2>&1 || need+=("$p")
 done
 if [ ${#need[@]} -gt 0 ]; then
@@ -95,6 +95,14 @@ if [ -d "$HB" ]; then
   done
 fi
 
+log "Nom réseau (mDNS) : http://$(hostname).local"
+install -d /etc/avahi/services
+if ! cmp -s "$REPO/deploy/avahi-naomox.service" /etc/avahi/services/naomox.service 2>/dev/null; then
+  install -m 0644 "$REPO/deploy/avahi-naomox.service" /etc/avahi/services/naomox.service
+  systemctl restart avahi-daemon 2>/dev/null || true
+fi
+systemctl enable -q avahi-daemon 2>/dev/null || true
+
 log "Service systemd"
 changed=0
 if ! cmp -s "$REPO/deploy/naomox.service" "$UNIT" 2>/dev/null; then
@@ -110,7 +118,7 @@ if [ "$START" -eq 1 ]; then
   for _ in $(seq 1 30); do
     if curl -fsS -m 2 http://127.0.0.1/api/v1/health >/dev/null 2>&1; then
       ip=$(hostname -I | awk '{print $1}')
-      log "NAOMOX opérationnel : http://${ip}/"
+      log "NAOMOX opérationnel : http://${ip}/ — ou http://$(hostname).local/"
       exit 0
     fi
     sleep 1

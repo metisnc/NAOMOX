@@ -90,7 +90,12 @@ Le script est **idempotent** : on peut le relancer pour mettre à jour.
 | Service | `naomox.service` (port 80 par capacité, sandbox systemd), activé au démarrage |
 | Vérification | `GET /api/v1/health` |
 
-L'interface est alors disponible sur **http://10.185.10.230/**. Sur téléphone, « Ajouter à
+L'interface est alors disponible sur **http://10.185.10.230/** ou **http://naomox.local/**
+(annonce mDNS / Bonjour par `avahi-daemon`, reconnue par iPhone, macOS, Windows 10/11 et Android récents ;
+le nom vient du hostname du CT).
+
+Pour que le nom court **http://naomox/** fonctionne sur tous les appareils, ajouter dans le DNS du
+réseau (box, routeur UniFi, Pi-hole, Technitium…) un enregistrement **A** `naomox` → `10.185.10.230`. Sur téléphone, « Ajouter à
 l'écran d'accueil » installe l'application (PWA).
 
 ## 4. Ajouter les ROMs, médias et firmwares
