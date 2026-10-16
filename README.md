@@ -28,3 +28,16 @@ NAOMOX_HOST=root@<ip-du-ct> deploy/push.sh
 ```
 
 Aucune ROM, aucun firmware Sega ni aucun média de jeu n'est fourni dans ce dépôt.
+
+## Crédits des logos de systèmes (non inclus dans ce dépôt)
+
+Les logos de systèmes sont des marques de leurs détenteurs (Sega, Sammy, Namco, Nintendo). Ils
+ne sont pas distribués avec NAOMOX : on les dépose dans `/srv/naomox/media/systems/` (Réglages →
+Fichiers → Logos systèmes). L'installation de référence utilise :
+
+| Fichier | Source | Licence |
+|---|---|---|
+| `Sega Naomi.png` | [Wikimedia Commons — Sega NAOMI logo.png](https://commons.wikimedia.org/wiki/File:Sega_NAOMI_logo.png) | domaine public |
+| `Sega Chihiro.svg` | [Wikimedia Commons — Sega Chihiro.svg](https://commons.wikimedia.org/wiki/File:Sega_Chihiro.svg), par Hipnosis183 | [CC BY-SA 4.0](https://creativecommons.org/licenses/by-sa/4.0) |
+| `Sega Triforce.svg` | [Wikimedia Commons — Triforce arcade.svg](https://commons.wikimedia.org/wiki/File:Triforce_arcade.svg) | domaine public |
+| `Sega Naomi2.png`, `Sammy Atomiswave.png` | pack WiPiNetbooter 6.1 | — |
