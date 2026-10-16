@@ -89,3 +89,42 @@ label.check { display: flex; align-items: center; gap: 0.6rem; min-height: 44px;
 .page { padding: 1rem 1rem calc(var(--nav-h) + var(--safe-b) + 1.5rem); max-width: 1100px; margin: 0 auto; }
 
 input[type='search']::-webkit-search-cancel-button { appearance: none; -webkit-appearance: none; }
+
+/* --- Thème « lancement » repris du launcher WiPiNetbooter-NG (néon cyan / magenta) --- */
+:root {
+  --neon-cyan: #19e6ff;
+  --neon-magenta: #ff2bd6;
+  --neon-ok: #3dff9a;
+  --neon-danger: #ff4d5e;
+  --neon-panel: #11131d;
+  --neon-track: #191c2a;
+  --neon-line: #262a3d;
+  --neon-text: #f2f4ff;
+  --neon-muted: #8a90a8;
+}
+.launch-msg { margin: 0; font-size: 15px; min-height: 20px; }
+.launch-msg.ok { color: var(--neon-ok); }
+.launch-msg.err { color: var(--neon-danger); }
+.launch-log {
+  margin: 0; max-height: 220px; overflow: auto; padding: 6px 8px; border-radius: 8px;
+  font-size: 11px; line-height: 1.35; white-space: pre-wrap; text-align: left;
+  background: #07080d; color: var(--neon-muted); border: 1px solid var(--neon-line);
+}
+.pills { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; }
+.pill {
+  min-height: 44px; min-width: 120px; padding: 0.4rem 1.1rem; border-radius: 24px; font-size: 15px;
+  background: var(--neon-track); color: var(--neon-text); border: 1px solid var(--neon-line);
+}
+.pill.primary { background: var(--neon-cyan); color: #07080d; border-color: var(--neon-cyan); font-weight: 700; }
+.pill.ghost { background: transparent; color: var(--neon-muted); }
+/* Gros bouton LANCER : dégradé orange → rose qui pulse. */
+.launch-btn {
+  width: 100%; min-height: 60px; font-size: 21px; font-weight: 800; letter-spacing: 3px;
+  border-radius: 14px; border: 0; color: #fff; text-transform: uppercase;
+  background: linear-gradient(180deg, #ff6a2b 0%, #ff2b6a 100%);
+  box-shadow: 0 0 18px rgb(255 43 106 / 0.45);
+  animation: launch-glow 1.8s ease-in-out infinite;
+}
+.launch-btn:active { transform: scale(0.97); filter: brightness(1.2); }
+.launch-btn:disabled { animation: none; box-shadow: none; filter: grayscale(0.6); }
+@keyframes launch-glow { 50% { box-shadow: 0 0 6px rgb(255 43 106 / 0.25); } }
