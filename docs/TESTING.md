@@ -71,16 +71,16 @@ cd frontend && NAOMOX_E2E_URL=http://10.185.10.230:8081 npm run e2e
 ssh root@10.185.10.230 'systemctl stop naomox-e2e naomox-e2e-mock; rm -rf /tmp/naomox-e2e'
 ```
 
-### Dernier résultat (2026-10-15)
+### Dernier résultat (2026-10-16)
 
 | Vérification | Résultat |
 |---|---|
-| pytest | **59 passed** (≈ 10 s), 15 passages successifs des tests réseau sans échec |
+| pytest | **81 passed** (≈ 15 s) : protocole, transfert, jobs, supervision, API, firmware (garde-fous), logos recadrés, nom réseau mDNS, e2e |
 | ruff | `check` et `format --check` propres |
 | svelte-check | 0 erreur, 0 avertissement |
-| build | 32 Ko de JS gzippé |
-| Playwright | 1 passed |
-| Déploiement | `install.sh` relancé deux fois (idempotent) ; service actif sous l'utilisateur `naomox` |
+| Playwright | 1 passed (une borne : lancement direct) ; vérifié aussi à la main avec deux bornes virtuelles (choix proposé) |
+| Déploiement | `install.sh` idempotent ; service `naomox` actif ; `http://naomox.local` résolu depuis Windows |
+| Matériel réel | NetDIMM `10.185.10.5` (firmware 4.01) joignable, info lue — **lancement réel encore à tester** |
 
 ---
 
