@@ -19,14 +19,15 @@
   import { ERROR_HELP, ago, romLabel } from '../lib/format';
   import { jobMessage, jobPercent, jobTone } from '../lib/progress';
   import { app } from '../lib/state.svelte';
-  import type { Cabinet, Game, Job } from '../lib/types';
+  import type { Cabinet, CabinetChoice, Game, Job } from '../lib/types';
 
   let { open = $bindable(false), rom = $bindable() }: { open: boolean; rom: string } = $props();
 
-  const LAST_CAB = 'naomox.last-cabinet';
   const game = $derived(app.games.find((g) => g.rom === rom));
   let sheet = $state<ReturnType<typeof Sheet> | null>(null);
-  let chosen = $state<string | null>(null);
+  // Choix de borne proposé seulement si plusieurs bornes compatibles sont en ligne.
+  let choices = $state<CabinetChoice[] | null>(null);
+  let lastCab = $state<string | null>(null);
   let jobId = $state<string | null>(null);
   let note = $state<string | null>(null);
   let busy = $state(false);
@@ -82,34 +83,30 @@
     showLog = false;
     note = null;
     videoOk = true;
-    let last: string | null = null;
-    try {
-      last = localStorage.getItem(LAST_CAB);
-    } catch {
-      last = null;
-    }
-    const online = compatible.filter((c) => c.status.online);
-    chosen = (online.find((c) => c.id === last) ?? online[0] ?? compatible.find((c) => c.id === last) ?? compatible[0])?.id ?? null;
+    choices = null;
+    lastCab = null;
     sheet?.scrollTop();
   }
 
-  const target = $derived(compatible.find((c) => c.id === chosen));
-
-  async function launch() {
-    if (!game || !target) return;
+  /** Sans borne précisée, le serveur choisit la seule borne compatible en ligne,
+   *  ou répond 409 avec la liste quand il faut choisir. */
+  async function launch(cabinetId?: string) {
+    if (!game) return;
     busy = true;
     note = null;
     try {
-      const j = await api.post<Job>('/launch', { rom: game.rom, cabinet_id: target.id });
+      const j = await api.post<Job>('/launch', { rom: game.rom, cabinet_id: cabinetId });
       app.jobs[j.id] = j;
       jobId = j.id;
-      try {
-        localStorage.setItem(LAST_CAB, target.id);
-      } catch {
-        /* stockage indisponible */
-      }
+      lastCab = j.cabinet_id;
+      choices = null;
     } catch (e) {
-      note = e instanceof ApiError ? e.message : (e as Error).message;
+      if (e instanceof ApiError && e.code === 'choose') {
+        choices = (e.detail.choices as CabinetChoice[]) ?? [];
+      } else {
+        choices = null;
+        note = e instanceof ApiError ? e.message : (e as Error).message;
+      }
     } finally {
       busy = false;
     }
@@ -200,7 +197,7 @@
                 {:else if done}
                   <button class="pill primary" onclick={() => (open = false)}>Fermer</button>
                 {:else}
-                  <button class="pill primary" onclick={launch}>Réessayer</button>
+                  <button class="pill primary" onclick={() => launch(lastCab ?? undefined)}>Réessayer</button>
                   <button class="pill" onclick={() => (jobId = null)}>Autre borne</button>
                 {/if}
                 <button class="pill ghost" onclick={toggleLog}>{showLog ? 'Masquer le journal' : 'Journal'}</button>
@@ -208,32 +205,25 @@
               {#if showLog}<pre class="launch-log">{log.join('\n') || '(vide)'}</pre>{/if}
             </div>
           {:else}
-            <h4>Lancer sur</h4>
-            <div class="cabs" role="radiogroup" aria-label="Borne">
-              {#each compatible as c (c.id)}
-                <button
-                  class="cab"
-                  class:sel={chosen === c.id}
-                  role="radio"
-                  aria-checked={chosen === c.id}
-                  onclick={() => (chosen = c.id)}
-                >
-                  <span class="dot" class:on={c.status.online === true} class:off={c.status.online === false}></span>
-                  <span class="cn">
-                    <strong>{c.name}</strong>
-                    <small>
-                      {c.status.online === false ? 'hors ligne' : c.status.busy ? 'transfert en cours' : c.status.game ? `joue à ${romLabel(c.status.game, app.names)}` : 'en ligne'}
-                    </small>
-                  </span>
-                </button>
-              {/each}
-            </div>
-            <button class="launch-btn" disabled={busy || !target} onclick={launch}>▶&nbsp; Lancer</button>
-            {#if target}<p class="lp-on">sur <strong>{target.name}</strong></p>{/if}
-            {#if target && target.status.online === false}
-              <p class="hint">La borne semble éteinte : NAOMOX réessaiera quelques secondes avant d’abandonner.</p>
+            {#if choices?.length}
+              <h4>Plusieurs bornes sont en ligne : laquelle ?</h4>
+              <div class="cabs">
+                {#each choices as c (c.id)}
+                  {@const cab = app.cabinets.find((x) => x.id === c.id)}
+                  <button class="cab" disabled={busy} onclick={() => launch(c.id)}>
+                    <span class="dot on"></span>
+                    <span class="cn">
+                      <strong>{c.name}</strong>
+                      <small>{cab?.status.busy ? 'transfert en cours' : cab?.status.game ? `joue à ${romLabel(cab.status.game, app.names)}` : c.ip}</small>
+                    </span>
+                    <span class="go-arrow">▶</span>
+                  </button>
+                {/each}
+              </div>
+              <button class="pill ghost" onclick={() => (choices = null)}>Annuler</button>
+            {:else}
+              <button class="launch-btn" disabled={busy} onclick={() => launch()}>▶&nbsp; Lancer</button>
             {/if}
-            {#if target?.status.busy}<p class="hint">Un transfert est en cours : ce lancement passera ensuite.</p>{/if}
             {#if note}<p class="warn">{note}</p>{/if}
           {/if}
         </aside>
@@ -307,11 +297,11 @@
   @media (min-width: 760px) { .launch { position: sticky; top: 1rem; } }
   h4 { margin: 0; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.08em; color: var(--fg-2); }
   .cabs { display: grid; gap: 0.4rem; }
-  .cab { justify-content: flex-start; gap: 0.65rem; text-align: left; padding: 0.55rem 0.7rem; border-radius: 12px; background: var(--bg-2); }
-  .cab.sel { border-color: var(--accent); box-shadow: inset 0 0 0 1px var(--accent); }
-  .cn { display: grid; min-width: 0; }
+  .cab { justify-content: flex-start; gap: 0.65rem; text-align: left; min-height: 58px; padding: 0.55rem 0.8rem; border-radius: 14px; background: var(--bg-2); }
+  .cab:hover, .cab:focus-visible { border-color: var(--accent); box-shadow: var(--glow); }
+  .cn { display: grid; flex: 1; min-width: 0; }
+  .go-arrow { color: var(--accent); font-size: 1.1rem; }
   .cn small { color: var(--fg-2); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-  .lp-on { margin: -0.2rem 0 0; text-align: center; font-size: 0.85rem; color: var(--fg-2); }
   .launching {
     display: grid; justify-items: center; gap: 0.5rem; text-align: center;
     margin: -0.9rem; padding: 1rem 0.9rem 1.1rem; border-radius: 16px;
