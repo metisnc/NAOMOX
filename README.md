@@ -29,14 +29,26 @@ Dans le **shell de l'hôte Proxmox** (Datacenter → nœud → Shell), en root :
 bash -c "$(curl -fsSL https://raw.githubusercontent.com/metisnc/NAOMOX/main/deploy/proxmox-install.sh)"
 ```
 
-Le script crée un conteneur LXC Debian (ID libre, IP en DHCP, 8 Go système + 64 Go de
-données), y installe la dernière version publiée et affiche l'adresse de l'interface :
-**http://naomox.local**. Login console du conteneur : `root` / `naomox` ; SSH/SFTP (copie des ROMs) : `naomox` / `naomox`
-(changer avec `passwd`). Tout est rappelé dans
-l'onglet **Notes** du conteneur.
+Un **assistant** s'ouvre alors :
 
-Options : à placer devant la commande, par exemple
-`IP=192.168.1.50/24 GW=192.168.1.1 DATA_GB=128 bash -c "$(curl …)"`.
+- **Installation rapide** : valeurs par défaut (ID libre, IP en DHCP, 8 Go système + 64 Go de
+  données), un récapitulatif, et c'est parti ;
+- **Installation personnalisée** : il demande l'ID, le nom, le mot de passe root, l'accès SSH/SFTP,
+  le réseau (DHCP ou IP fixe, bridge, VLAN), le stockage, la taille des disques, les vCPU et la RAM.
+
+À la fin, l'adresse de l'interface s'affiche : **http://naomox.local**. Login console du conteneur :
+`root` / `naomox` ; SSH/SFTP (copie des ROMs) : `naomox` / `naomox` (changer avec `passwd`).
+Tout est rappelé dans l'onglet **Notes** du conteneur.
+
+### Installation automatisée (script, IA)
+
+Sans aucune question, avec `NAOMOX_YES=1` et les variables voulues :
+
+```sh
+NAOMOX_YES=1 IP=192.168.1.50/24 GW=192.168.1.1 DATA_GB=128   bash -c "$(curl -fsSL https://raw.githubusercontent.com/metisnc/NAOMOX/main/deploy/proxmox-install.sh)"
+```
+
+`NAOMOX_DRY_RUN=1` affiche ce qui serait fait, sans rien créer.
 
 | Variable | Défaut | Rôle |
 |---|---|---|
@@ -49,6 +61,8 @@ Options : à placer devant la commande, par exemple
 | `ROOT_PASSWORD` | `naomox` | mot de passe root du conteneur |
 | `SSH_PASSWORD` | = `ROOT_PASSWORD` | mot de passe SSH/SFTP du compte `naomox` (vide = pas d'accès SSH) |
 | `NAOMOX_VERSION` | `latest` | version publiée à installer (`v0.1.0`…) |
+| `NAOMOX_YES` | — | `1` = aucune question (automatisation) |
+| `NAOMOX_DRY_RUN` | — | `1` = simulation, rien n'est créé |
 
 > Le conteneur a besoin d'un accès Internet pendant l'installation (paquets Debian et Python).
 
