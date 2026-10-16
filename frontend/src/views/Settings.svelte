@@ -111,7 +111,7 @@
       <input bind:value={subnet} placeholder="10.185.10.0/24" />
     </label>
     <div class="row">
-      <span class="muted small grow">Port NetDIMM : {app.settings?.netdimm_port}</span>
+      <span class="grow"></span>
       <button class="primary small">Enregistrer</button>
     </div>
   </form>
