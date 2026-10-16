@@ -21,7 +21,7 @@
   <section class="shelf">
     <header>
       <h2>{title}</h2>
-      {#if onmore}<button class="ghost small" onclick={onmore}>Tout voir ›</button>{/if}
+      {#if onmore}<button class="ghost small more" onclick={onmore}>Tout voir ›</button>{/if}
     </header>
     <div class="row" role="list">
       {#each games as g (g.rom)}
@@ -32,15 +32,16 @@
 {/if}
 
 <style>
-  .shelf { margin: 0.4rem 0 1.1rem; }
-  header { display: flex; align-items: baseline; justify-content: space-between; }
-  h2 { margin: 0 0 0.5rem; color: var(--fg); font-size: 1.05rem; }
+  .shelf { margin: 0 0 0.55rem; }
+  header { display: flex; align-items: center; justify-content: space-between; min-height: 34px; }
+  h2 { margin: 0; color: var(--fg); font-size: 1rem; }
+  .more { min-height: 30px; color: var(--accent); }
   .row {
-    display: grid; grid-auto-flow: column; grid-auto-columns: minmax(158px, 44%);
-    gap: 0.65rem; overflow-x: auto; scroll-snap-type: x mandatory; padding: 0.2rem 0.1rem 0.6rem;
+    display: grid; grid-auto-flow: column; grid-auto-columns: 80%;
+    gap: 0.6rem; overflow-x: auto; scroll-snap-type: x mandatory; padding: 0.15rem 0.1rem 0.35rem;
     scrollbar-width: none; overscroll-behavior-x: contain;
   }
   .row::-webkit-scrollbar { display: none; }
   .cell { scroll-snap-align: start; display: grid; }
-  @media (min-width: 700px) { .row { grid-auto-columns: 210px; } }
+  @media (min-width: 600px) { .row { grid-auto-columns: 300px; } }
 </style>
